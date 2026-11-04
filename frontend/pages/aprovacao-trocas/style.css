@@ -1,5 +1,6 @@
-/* Estilos da tela Aprovação de Trocas - Líder / Admin */
+/* Estilos da tela Aprovação de Trocas */
 body {
   min-height: max(884px, 100dvh);
-  background-color: #0f131c;
+  background-color: var(--surface);
+  color: var(--on-surface);
 }

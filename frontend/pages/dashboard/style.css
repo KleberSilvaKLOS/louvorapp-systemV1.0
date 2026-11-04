@@ -1,1 +1,5 @@
-body { background-color: #0f131c; }
+/* Estilos da tela Dashboard */
+body {
+  background-color: var(--surface);
+  color: var(--on-surface);
+}

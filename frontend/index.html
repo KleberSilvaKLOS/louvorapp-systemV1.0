@@ -15,6 +15,14 @@
 </head>
 <body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen selection:bg-primary-container selection:text-on-primary-container pt-safe pb-safe">
   <main class="flex flex-col items-center justify-center relative w-full bg-surface min-h-screen px-margin py-space-xl">
+    <!-- Botão rápido de Tema (Escuro / Claro / Sistema) no topo -->
+    <div class="fixed top-4 right-4 z-40">
+      <button aria-label="Alternar Tema" class="px-3 py-1.5 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface font-label-sm flex items-center gap-1.5 shadow-md transition-all active:scale-95" onclick="window.LouvorTheme.cycleTheme()" title="Alternar entre Tema Escuro, Claro e Automático" type="button">
+        <span class="material-symbols-outlined text-[18px] text-tertiary" data-theme-icon="">dark_mode</span>
+        <span data-theme-label="">Escuro</span>
+      </button>
+    </div>
+
     <div class="flex flex-col w-full max-w-md space-y-space-lg">
       <!-- Brand Header & Mascot Welcome -->
       <div class="flex flex-col items-center text-center">

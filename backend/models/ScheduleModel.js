@@ -153,6 +153,22 @@ const ScheduleModel = {
       members = []
     } = data;
 
+    // Verifica antes de criar a escala se algum membro informado possui indisponibilidade cadastrada para event_date
+    if (Array.isArray(members) && members.length > 0 && !data.bypass_unavailability) {
+      for (const m of members) {
+        if (!m.user_id) continue;
+        const unavail = await UserModel.getUserUnavailabilityOnDate(m.user_id, event_date);
+        if (unavail) {
+          const usr = await db.get('SELECT full_name FROM users WHERE id = ?', [m.user_id]);
+          const err = new Error(
+            `Não foi possível escalar ${usr ? usr.full_name : 'o integrante'}: indisponibilidade cadastrada de ${unavail.start_date} a ${unavail.end_date} (${unavail.reason}).`
+          );
+          err.status = 400;
+          throw err;
+        }
+      }
+    }
+
     const songList = Array.isArray(data.song_ids) ? data.song_ids : Array.isArray(data.songs) ? data.songs : [];
 
     const res = await db.run(
@@ -169,7 +185,7 @@ const ScheduleModel = {
 
     if (Array.isArray(members)) {
       for (const m of members) {
-        await this.addMemberToSchedule(scheduleId, m);
+        await this.addMemberToSchedule(scheduleId, m, { bypassUnavailability: Boolean(data.bypass_unavailability) });
       }
     }
 
@@ -254,8 +270,27 @@ const ScheduleModel = {
     return db.run('DELETE FROM schedules WHERE id = ?', [id]);
   },
 
-  async addMemberToSchedule(scheduleId, { user_id, role_key = 'teclado', role_label, instrument_detail = '', is_leader = 0, confirmation_status = 'pending', icon = 'music_note', color_variant = 'primary' }) {
-    const user = await db.get('SELECT * FROM users WHERE id = ?', [user_id]);
+  async addMemberToSchedule(
+    scheduleId,
+    { user_id, role_key = 'teclado', role_label, instrument_detail = '', is_leader = 0, confirmation_status = 'pending', icon = 'music_note', color_variant = 'primary' },
+    { bypassUnavailability = false } = {}
+  ) {
+    const [user, schedule] = await Promise.all([
+      db.get('SELECT * FROM users WHERE id = ?', [user_id]),
+      db.get('SELECT id, title, event_date FROM schedules WHERE id = ?', [scheduleId])
+    ]);
+
+    if (schedule && !bypassUnavailability) {
+      const unavail = await UserModel.getUserUnavailabilityOnDate(user_id, schedule.event_date);
+      if (unavail) {
+        const err = new Error(
+          `Não foi possível escalar ${user ? user.full_name : 'o integrante'} em ${schedule.event_date}: indisponibilidade cadastrada de ${unavail.start_date} a ${unavail.end_date} (${unavail.reason}).`
+        );
+        err.status = 400;
+        throw err;
+      }
+    }
+
     const finalLabel = role_label || (user ? user.full_name : 'Membro Escalado');
     const finalDetail = instrument_detail || (user ? user.title : 'Instrumentista');
 

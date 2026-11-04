@@ -130,12 +130,12 @@
         </div>
       </div>
 
-      <!-- 2. Instrumentos & Habilidades Ativas -->
+      <!-- 2. Instrumentos, Vozes & Habilidades Ativas -->
       <div class="flex flex-col space-y-3">
         <div class="flex items-center justify-between px-1">
           <div class="flex items-center gap-2">
             <span class="material-symbols-outlined text-primary text-[20px]">piano</span>
-            <h3 class="font-headline-sm text-headline-sm text-on-surface">Habilidades &amp; Funções</h3>
+            <h3 class="font-headline-sm text-headline-sm text-on-surface">Habilidades, Vozes &amp; Instrumentos</h3>
           </div>
           <button class="flex items-center gap-1 text-primary hover:text-primary-fixed transition-colors font-label-md text-label-md active:scale-95" id="btnAddInstrument" type="button">
             <span class="material-symbols-outlined text-[16px]">add</span>
@@ -143,6 +143,24 @@
           </button>
         </div>
         <div class="flex flex-col space-y-2" id="skillsListContainer"></div>
+      </div>
+
+      <!-- 2b. Períodos de Indisponibilidade (Viagens, Férias e Compromissos com Bloqueio Automático na Escala) -->
+      <div class="flex flex-col space-y-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-tertiary text-[20px]">flight_takeoff</span>
+            <h3 class="font-headline-sm text-headline-sm text-on-surface">Períodos de Indisponibilidade</h3>
+          </div>
+          <button class="flex items-center gap-1 text-tertiary hover:underline transition-colors font-label-md text-label-md active:scale-95" id="btnAddUnavailability" type="button">
+            <span class="material-symbols-outlined text-[16px]">add_circle</span>
+            Informar Data / Período
+          </button>
+        </div>
+        <p class="font-body-sm text-body-sm text-on-surface-variant px-1 -mt-1">
+          Informe dias ou períodos de viagem e compromissos. O sistema evitará automaticamente escalar você nestas datas.
+        </p>
+        <div class="flex flex-col space-y-2" id="unavailabilitiesListContainer"></div>
       </div>
 
       <!-- 3. Métricas e Estatísticas (Zeradas para novos cadastros) -->
@@ -282,13 +300,42 @@
         </div>
       </div>
 
-      <!-- 6. Recursos, Passo a Passo & Diretrizes -->
+      <!-- 6. Aparência (Tema Claro / Escuro / Sistema), Recursos & Diretrizes -->
       <div class="flex flex-col space-y-3">
         <div class="flex items-center gap-2 px-1">
           <span class="material-symbols-outlined text-on-surface-variant text-[20px]">folder_special</span>
-          <h3 class="font-headline-sm text-headline-sm text-on-surface">Recursos &amp; Diretrizes</h3>
+          <h3 class="font-headline-sm text-headline-sm text-on-surface">Aparência, Recursos &amp; Diretrizes</h3>
         </div>
         <div class="rounded-xl bg-surface-container-low overflow-hidden shadow-sm divide-y divide-surface-variant/40">
+          <!-- Seletor de Tema: Escuro / Claro / Automático (Sistema Operacional) -->
+          <div class="flex flex-col gap-3 p-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-surface-container-high text-tertiary flex items-center justify-center">
+                  <span class="material-symbols-outlined text-[20px]" data-theme-icon="">dark_mode</span>
+                </div>
+                <div class="flex flex-col">
+                  <span class="font-headline-sm text-headline-sm text-on-surface">Tema do Aplicativo</span>
+                  <span class="font-body-sm text-body-sm text-on-surface-variant" data-theme-full-label="">Escolha entre Tema Escuro, Claro ou Sistema</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="flex-1 py-2 px-2.5 rounded-lg bg-surface-container-highest text-on-surface-variant font-label-sm flex items-center justify-center gap-1 transition-all" data-theme-option="dark" onclick="window.LouvorTheme.setPreference('dark')" type="button">
+                <span class="material-symbols-outlined text-[16px]">dark_mode</span>
+                <span>Escuro</span>
+              </button>
+              <button class="flex-1 py-2 px-2.5 rounded-lg bg-surface-container-highest text-on-surface-variant font-label-sm flex items-center justify-center gap-1 transition-all" data-theme-option="light" onclick="window.LouvorTheme.setPreference('light')" type="button">
+                <span class="material-symbols-outlined text-[16px]">light_mode</span>
+                <span>Claro</span>
+              </button>
+              <button class="flex-1 py-2 px-2.5 rounded-lg bg-surface-container-highest text-on-surface-variant font-label-sm flex items-center justify-center gap-1 transition-all" data-theme-option="system" onclick="window.LouvorTheme.setPreference('system')" type="button">
+                <span class="material-symbols-outlined text-[16px]">brightness_auto</span>
+                <span>Sistema</span>
+              </button>
+            </div>
+          </div>
+
           <!-- Passo a Passo de Primeiro Acesso -->
           <button class="w-full flex items-center justify-between p-4 hover:bg-surface-container active:scale-[0.99] transition-all text-left" onclick="window.LouvorNav.openFirstAccessGuide()" type="button">
             <div class="flex items-center gap-3">
@@ -341,21 +388,6 @@
             </div>
             <span class="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>
           </button>
-          <!-- Tema Dark Mode Info -->
-          <div class="flex items-center justify-between p-4">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-lg bg-surface-container-high text-tertiary flex items-center justify-center">
-                <span class="material-symbols-outlined text-[20px]">dark_mode</span>
-              </div>
-              <div class="flex flex-col">
-                <span class="font-headline-sm text-headline-sm text-on-surface">Tema do Aplicativo</span>
-                <span class="font-body-sm text-body-sm text-on-surface-variant">Otimizado para iluminação de palco baixa</span>
-              </div>
-            </div>
-            <span class="px-2.5 py-1 rounded-full bg-surface-container-highest text-on-surface font-label-sm text-label-sm font-semibold">
-              Dark Stage
-            </span>
-          </div>
           <!-- Termos e Privacidade -->
           <button class="w-full flex items-center justify-between p-4 hover:bg-surface-container active:scale-[0.99] transition-all text-left" id="linkTermsPrivacy" type="button">
             <div class="flex items-center gap-3">
@@ -393,7 +425,7 @@
         <div class="pt-4 pb-2 text-center flex flex-col items-center justify-center space-y-1">
           <div class="flex items-center gap-1.5 text-outline font-label-md text-label-md">
             <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
-            <span>LouvorApp v2.4.1</span>
+            <span>LouvorApp v2.5.0</span>
           </div>
           <p class="font-body-sm text-body-sm text-on-surface-variant/70">
             Ministério de Louvor &amp; Adoração

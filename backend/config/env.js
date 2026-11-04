@@ -34,8 +34,7 @@ const DEFAULT_ADMIN_EMAILS = [
   'admin1@email.com',
   'admin2@email.com',
   'lucas@igreja.org',
-  'admin@louvorapp.org',
-  'kleluca75@gmail.com'
+  'admin@louvorapp.org'
 ];
 
 function getAdminEmails() {

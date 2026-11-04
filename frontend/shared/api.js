@@ -1,63 +1,64 @@
 /**
- * LOUVORAPP - CLIENTE DE API E UTILITÁRIOS COMPARTILHADOS
- * Gerencia comunicação com o backend, autenticação de sessão, toasts e modais globais.
+ * LOUVORAPP - CLIENTE DE API, GERENCIADOR DE TEMAS (CLARO / ESCURO / SISTEMA) E UTILITÁRIOS
+ * Gerencia comunicação com o backend, autenticação de sessão, temas dinâmicos, toasts e modais globais.
  */
 (function (window) {
   const TOKEN_STORAGE_KEY = 'louvorapp_session_token';
   const USER_CACHE_KEY = 'louvorapp_cached_user';
+  const THEME_STORAGE_KEY = 'louvorapp_theme_pref';
 
   const TAILWIND_DESIGN_CONFIG = {
     darkMode: 'class',
     theme: {
       extend: {
         colors: {
-          'background': '#0f131c',
-          'on-background': '#dfe2ee',
-          'on-tertiary-fixed': '#2a1700',
-          'primary': '#adc6ff',
-          'primary-container': '#4d8eff',
-          'secondary-container': '#00a572',
-          'tertiary-fixed': '#ffddb8',
-          'surface-variant': '#31353e',
-          'tertiary-fixed-dim': '#ffb95f',
-          'on-primary-fixed': '#001a42',
-          'inverse-on-surface': '#2c3039',
-          'on-secondary-fixed': '#002113',
-          'on-secondary': '#003824',
-          'primary-fixed': '#d8e2ff',
-          'surface-tint': '#adc6ff',
-          'on-tertiary-container': '#3e2400',
-          'outline-variant': '#424754',
-          'surface': '#0f131c',
-          'on-secondary-container': '#00311f',
-          'on-surface': '#dfe2ee',
-          'surface-container-low': '#181c24',
-          'on-surface-variant': '#c2c6d6',
-          'secondary-fixed': '#6ffbbe',
-          'on-tertiary-fixed-variant': '#653e00',
-          'on-primary': '#002e6a',
-          'primary-fixed-dim': '#adc6ff',
-          'on-error-container': '#ffdad6',
-          'error-container': '#93000a',
-          'outline': '#8c909f',
-          'tertiary': '#ffb95f',
-          'surface-container': '#1c2028',
-          'surface-dim': '#0f131c',
-          'on-tertiary': '#472a00',
-          'error': '#ffb4ab',
-          'secondary': '#4edea3',
-          'surface-container-lowest': '#0a0e16',
-          'inverse-primary': '#005ac2',
-          'surface-container-high': '#262a33',
-          'surface-bright': '#353942',
-          'on-primary-fixed-variant': '#004395',
-          'tertiary-container': '#ca8100',
-          'on-secondary-fixed-variant': '#005236',
-          'surface-container-highest': '#31353e',
-          'on-primary-container': '#00285d',
-          'inverse-surface': '#dfe2ee',
-          'on-error': '#690005',
-          'secondary-fixed-dim': '#4edea3'
+          'background': 'rgb(var(--rgb-surface) / <alpha-value>)',
+          'on-background': 'rgb(var(--rgb-on-surface) / <alpha-value>)',
+          'on-tertiary-fixed': 'rgb(var(--rgb-on-tertiary-fixed) / <alpha-value>)',
+          'primary': 'rgb(var(--rgb-primary) / <alpha-value>)',
+          'primary-container': 'rgb(var(--rgb-primary-container) / <alpha-value>)',
+          'secondary-container': 'rgb(var(--rgb-secondary-container) / <alpha-value>)',
+          'tertiary-fixed': 'rgb(var(--rgb-tertiary-fixed) / <alpha-value>)',
+          'surface-variant': 'rgb(var(--rgb-surface-variant) / <alpha-value>)',
+          'tertiary-fixed-dim': 'rgb(var(--rgb-tertiary-fixed-dim) / <alpha-value>)',
+          'on-primary-fixed': 'rgb(var(--rgb-on-primary-fixed) / <alpha-value>)',
+          'inverse-on-surface': 'rgb(var(--rgb-inverse-on-surface) / <alpha-value>)',
+          'on-secondary-fixed': 'rgb(var(--rgb-on-secondary-fixed) / <alpha-value>)',
+          'on-secondary': 'rgb(var(--rgb-on-secondary) / <alpha-value>)',
+          'primary-fixed': 'rgb(var(--rgb-primary-fixed) / <alpha-value>)',
+          'surface-tint': 'rgb(var(--rgb-primary) / <alpha-value>)',
+          'on-tertiary-container': 'rgb(var(--rgb-on-tertiary-container) / <alpha-value>)',
+          'outline-variant': 'rgb(var(--rgb-outline-variant) / <alpha-value>)',
+          'surface': 'rgb(var(--rgb-surface) / <alpha-value>)',
+          'on-secondary-container': 'rgb(var(--rgb-on-secondary-container) / <alpha-value>)',
+          'on-surface': 'rgb(var(--rgb-on-surface) / <alpha-value>)',
+          'surface-container-low': 'rgb(var(--rgb-surface-container-low) / <alpha-value>)',
+          'on-surface-variant': 'rgb(var(--rgb-on-surface-variant) / <alpha-value>)',
+          'secondary-fixed': 'rgb(var(--rgb-secondary-fixed) / <alpha-value>)',
+          'on-tertiary-fixed-variant': 'rgb(var(--rgb-on-tertiary-fixed-variant) / <alpha-value>)',
+          'on-primary': 'rgb(var(--rgb-on-primary) / <alpha-value>)',
+          'primary-fixed-dim': 'rgb(var(--rgb-primary-fixed-dim) / <alpha-value>)',
+          'on-error-container': 'rgb(var(--rgb-on-error-container) / <alpha-value>)',
+          'error-container': 'rgb(var(--rgb-error-container) / <alpha-value>)',
+          'outline': 'rgb(var(--rgb-outline) / <alpha-value>)',
+          'tertiary': 'rgb(var(--rgb-tertiary) / <alpha-value>)',
+          'surface-container': 'rgb(var(--rgb-surface-container) / <alpha-value>)',
+          'surface-dim': 'rgb(var(--rgb-surface-dim) / <alpha-value>)',
+          'on-tertiary': 'rgb(var(--rgb-on-tertiary) / <alpha-value>)',
+          'error': 'rgb(var(--rgb-error) / <alpha-value>)',
+          'secondary': 'rgb(var(--rgb-secondary) / <alpha-value>)',
+          'surface-container-lowest': 'rgb(var(--rgb-surface-container-lowest) / <alpha-value>)',
+          'inverse-primary': 'rgb(var(--rgb-inverse-primary) / <alpha-value>)',
+          'surface-container-high': 'rgb(var(--rgb-surface-container-high) / <alpha-value>)',
+          'surface-bright': 'rgb(var(--rgb-surface-bright) / <alpha-value>)',
+          'on-primary-fixed-variant': 'rgb(var(--rgb-on-primary-fixed-variant) / <alpha-value>)',
+          'tertiary-container': 'rgb(var(--rgb-tertiary-container) / <alpha-value>)',
+          'on-secondary-fixed-variant': 'rgb(var(--rgb-on-secondary-fixed-variant) / <alpha-value>)',
+          'surface-container-highest': 'rgb(var(--rgb-surface-container-highest) / <alpha-value>)',
+          'on-primary-container': 'rgb(var(--rgb-on-primary-container) / <alpha-value>)',
+          'inverse-surface': 'rgb(var(--rgb-inverse-surface) / <alpha-value>)',
+          'on-error': 'rgb(var(--rgb-on-error) / <alpha-value>)',
+          'secondary-fixed-dim': 'rgb(var(--rgb-secondary-fixed-dim) / <alpha-value>)'
         },
         borderRadius: {
           DEFAULT: '0.25rem',
@@ -111,6 +112,126 @@
     window.tailwind.config = TAILWIND_DESIGN_CONFIG;
   }
 
+  const LouvorTheme = {
+    getPreference() {
+      const saved = localStorage.getItem(THEME_STORAGE_KEY);
+      if (saved && ['dark', 'light', 'system'].includes(saved)) return saved;
+      try {
+        const rawUser = sessionStorage.getItem(USER_CACHE_KEY) || localStorage.getItem(USER_CACHE_KEY);
+        if (rawUser) {
+          const parsed = JSON.parse(rawUser);
+          if (parsed && ['dark', 'light', 'system'].includes(parsed.theme_preference)) {
+            return parsed.theme_preference;
+          }
+        }
+      } catch (e) {}
+      return 'dark';
+    },
+
+    getEffectiveTheme(pref = null) {
+      const p = pref || this.getPreference();
+      if (p === 'light') return 'light';
+      if (p === 'dark') return 'dark';
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        return 'light';
+      }
+      return 'dark';
+    },
+
+    getThemeMeta(pref = null) {
+      const p = pref || this.getPreference();
+      const eff = this.getEffectiveTheme(p);
+      if (p === 'light') {
+        return { pref: 'light', effective: 'light', label: 'Claro', fullLabel: 'Tema Claro (Light Mode)', icon: 'light_mode' };
+      }
+      if (p === 'system') {
+        return {
+          pref: 'system',
+          effective: eff,
+          label: 'Sistema',
+          fullLabel: `Automático (${eff === 'light' ? 'Claro' : 'Escuro'})`,
+          icon: 'brightness_auto'
+        };
+      }
+      return { pref: 'dark', effective: 'dark', label: 'Escuro', fullLabel: 'Tema Escuro (Dark Stage)', icon: 'dark_mode' };
+    },
+
+    applyTheme(pref = null) {
+      const chosenPref = pref && ['dark', 'light', 'system'].includes(pref) ? pref : this.getPreference();
+      localStorage.setItem(THEME_STORAGE_KEY, chosenPref);
+      const effective = this.getEffectiveTheme(chosenPref);
+      const root = document.documentElement;
+      root.classList.remove('dark', 'light');
+      root.classList.add(effective);
+      root.setAttribute('data-theme-pref', chosenPref);
+      root.setAttribute('data-theme-effective', effective);
+      this.refreshThemeControlsUI(chosenPref);
+    },
+
+    refreshThemeControlsUI(pref = null) {
+      const meta = this.getThemeMeta(pref);
+      document.querySelectorAll('[data-theme-icon]').forEach((el) => {
+        el.textContent = meta.icon;
+      });
+      document.querySelectorAll('[data-theme-label]').forEach((el) => {
+        el.textContent = meta.label;
+      });
+      document.querySelectorAll('[data-theme-full-label]').forEach((el) => {
+        el.textContent = meta.fullLabel;
+      });
+      document.querySelectorAll('[data-theme-option]').forEach((btn) => {
+        const opt = btn.getAttribute('data-theme-option');
+        if (opt === meta.pref) {
+          btn.className =
+            'flex-1 py-2 px-2.5 rounded-lg bg-primary-container text-on-primary-container font-label-sm font-bold flex items-center justify-center gap-1 shadow-sm transition-all';
+        } else {
+          btn.className =
+            'flex-1 py-2 px-2.5 rounded-lg bg-surface-container-highest text-on-surface-variant hover:text-on-surface font-label-sm flex items-center justify-center gap-1 transition-all';
+        }
+      });
+    },
+
+    async setPreference(pref, { syncBackend = true, showNotification = true } = {}) {
+      if (!['dark', 'light', 'system'].includes(pref)) return;
+      this.applyTheme(pref);
+      const meta = this.getThemeMeta(pref);
+      if (showNotification && window.LouvorAPI) {
+        window.LouvorAPI.showToast(`Aparência: ${meta.fullLabel}`);
+      }
+      if (syncBackend && window.LouvorAPI && window.LouvorAPI.getToken()) {
+        try {
+          const res = await window.LouvorAPI.request('/api/users/profile', {
+            method: 'PUT',
+            body: { theme_preference: pref },
+            redirectOn401: false
+          });
+          if (res && res.user) {
+            window.LouvorAPI.setSession(window.LouvorAPI.getToken(), res.user);
+          }
+        } catch (e) {}
+      }
+    },
+
+    async cycleTheme() {
+      const order = ['dark', 'light', 'system'];
+      const current = this.getPreference();
+      const next = order[(order.indexOf(current) + 1) % order.length];
+      await this.setPreference(next, { syncBackend: true, showNotification: true });
+    }
+  };
+
+  // Aplica imediatamente o tema antes da renderização do body (evita flash visual)
+  LouvorTheme.applyTheme();
+  if (window.matchMedia) {
+    const mq = window.matchMedia('(prefers-color-scheme: light)');
+    const listener = () => {
+      if (LouvorTheme.getPreference() === 'system') {
+        LouvorTheme.applyTheme('system');
+      }
+    };
+    if (mq.addEventListener) mq.addEventListener('change', listener);
+  }
+
   const LouvorAPI = {
     getToken() {
       return sessionStorage.getItem(TOKEN_STORAGE_KEY) || localStorage.getItem(TOKEN_STORAGE_KEY) || '';
@@ -124,6 +245,9 @@
       if (user) {
         sessionStorage.setItem(USER_CACHE_KEY, JSON.stringify(user));
         localStorage.setItem(USER_CACHE_KEY, JSON.stringify(user));
+        if (user.theme_preference && ['dark', 'light', 'system'].includes(user.theme_preference)) {
+          LouvorTheme.applyTheme(user.theme_preference);
+        }
       }
     },
 
@@ -248,5 +372,6 @@
     }
   };
 
+  window.LouvorTheme = LouvorTheme;
   window.LouvorAPI = LouvorAPI;
 })(window);

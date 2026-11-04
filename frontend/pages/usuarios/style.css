@@ -1,4 +1,5 @@
-/* Estilos da tela Gestão de Usuários (ADMIN) */
+/* Estilos da tela Gestão de Usuários */
 body {
-  background-color: #0f131c;
+  background-color: var(--surface);
+  color: var(--on-surface);
 }

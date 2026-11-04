@@ -55,11 +55,151 @@ function renderHeroAvatar(avatarUrl) {
   }
 }
 
+function formatDateBr(isoDate) {
+  if (!isoDate) return '';
+  return String(isoDate).split('-').reverse().join('/');
+}
+
+function renderUnavailabilitiesList(unavailabilities = []) {
+  const container = document.getElementById('unavailabilitiesListContainer');
+  if (!container) return;
+
+  if (!unavailabilities || unavailabilities.length === 0) {
+    container.innerHTML = `
+      <div class="p-4 rounded-xl bg-surface-container-low text-center font-body-sm text-on-surface-variant">
+        Nenhum período de indisponibilidade cadastrado. Clique em "Informar Data / Período" caso vá viajar ou tenha algum compromisso.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = unavailabilities
+    .map((u) => {
+      const sameDay = u.start_date === u.end_date;
+      const periodLabel = sameDay
+        ? `Dia ${formatDateBr(u.start_date)}`
+        : `De ${formatDateBr(u.start_date)} até ${formatDateBr(u.end_date)}`;
+
+      return `
+        <div class="flex items-center justify-between p-3.5 rounded-xl bg-surface-container-low border border-tertiary/25 gap-3">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-10 h-10 rounded-lg bg-tertiary-container/20 text-tertiary flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-[20px]">event_busy</span>
+            </div>
+            <div class="flex flex-col min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-headline-sm text-headline-sm text-on-surface">${window.LouvorAPI.escapeHtml(periodLabel)}</span>
+                <span class="px-2 py-0.5 rounded-full bg-tertiary-container/25 text-tertiary font-label-sm text-[10px]">Bloqueio Automático</span>
+              </div>
+              <span class="font-body-sm text-body-sm text-on-surface-variant truncate">${window.LouvorAPI.escapeHtml(u.reason)}</span>
+            </div>
+          </div>
+          <button type="button" onclick="removeUnavailabilityItem(${u.id})" class="text-outline hover:text-error p-1.5 shrink-0" title="Remover indisponibilidade">
+            <span class="material-symbols-outlined text-[18px]">delete</span>
+          </button>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+function openAddUnavailabilityModal() {
+  const now = new Date();
+  const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  const modal = document.createElement('div');
+  modal.className = 'louvor-modal-backdrop';
+  modal.innerHTML = `
+    <div class="louvor-modal-card flex flex-col gap-3.5">
+      <div class="flex items-center justify-between">
+        <div class="flex flex-col">
+          <h3 class="font-headline-sm text-on-surface">Informar Período de Indisponibilidade</h3>
+          <span class="font-body-sm text-on-surface-variant">Informe um dia específico ou período de ausência</span>
+        </div>
+        <button type="button" id="closeUnavailModalBtn" class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <div class="flex flex-col gap-1">
+          <label class="font-label-sm text-on-surface-variant uppercase">Data Inicial</label>
+          <input id="inputUnavailStart" type="date" value="${todayIso}" class="h-11 px-3 rounded-lg bg-surface-container-lowest text-on-surface font-body-sm" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="font-label-sm text-on-surface-variant uppercase">Data Final</label>
+          <input id="inputUnavailEnd" type="date" value="${todayIso}" class="h-11 px-3 rounded-lg bg-surface-container-lowest text-on-surface font-body-sm" />
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label class="font-label-sm text-on-surface-variant uppercase">Motivo / Observação</label>
+        <input id="inputUnavailReason" placeholder="Ex: Viagem em família / Compromisso profissional" class="w-full h-11 px-3 rounded-lg bg-surface-container-lowest text-on-surface font-body-sm" />
+      </div>
+
+      <div class="p-2.5 rounded-xl bg-surface-container-low text-body-sm text-on-surface-variant flex items-center gap-2">
+        <span class="material-symbols-outlined text-secondary text-[18px] shrink-0">verified_user</span>
+        <span>Para informar apenas um único dia, mantenha a Data Inicial e a Data Final iguais.</span>
+      </div>
+
+      <div class="flex gap-2 pt-1">
+        <button type="button" id="cancelUnavailModalBtn" class="flex-1 h-11 rounded-xl bg-surface-container-highest text-on-surface font-label-md">Cancelar</button>
+        <button type="button" id="saveUnavailModalBtn" class="flex-1 h-11 rounded-xl bg-primary-container text-on-primary-container font-label-md font-bold">Salvar Período</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  const close = () => modal.remove();
+  modal.querySelector('#closeUnavailModalBtn').onclick = close;
+  modal.querySelector('#cancelUnavailModalBtn').onclick = close;
+
+  const startEl = modal.querySelector('#inputUnavailStart');
+  const endEl = modal.querySelector('#inputUnavailEnd');
+  startEl.onchange = () => {
+    if (endEl.value < startEl.value) endEl.value = startEl.value;
+  };
+
+  modal.querySelector('#saveUnavailModalBtn').onclick = async () => {
+    const start_date = startEl.value;
+    const end_date = endEl.value || start_date;
+    const reason = modal.querySelector('#inputUnavailReason').value.trim() || 'Compromisso pessoal / Viagem';
+    try {
+      const res = await window.LouvorAPI.request('/api/users/unavailabilities', {
+        method: 'POST',
+        body: { start_date, end_date, reason }
+      });
+      profileUser.unavailabilities = res.unavailabilities || [];
+      renderUnavailabilitiesList(profileUser.unavailabilities);
+      showLocalToast(res.message);
+      close();
+    } catch (err) {
+      window.LouvorAPI.showToast(err.message, 'error');
+    }
+  };
+}
+
+async function removeUnavailabilityItem(unavailabilityId) {
+  if (!confirm('Deseja remover este período de indisponibilidade?')) return;
+  try {
+    const res = await window.LouvorAPI.request(`/api/users/unavailabilities/${unavailabilityId}`, {
+      method: 'DELETE'
+    });
+    profileUser.unavailabilities = res.unavailabilities || [];
+    renderUnavailabilitiesList(profileUser.unavailabilities);
+    showLocalToast(res.message);
+  } catch (err) {
+    window.LouvorAPI.showToast(err.message, 'error');
+  }
+}
+
 function renderProfileData(user) {
   profileUser = user;
   window.LouvorAPI.setSession(window.LouvorAPI.getToken(), user);
   window.LouvorNav.updateHeaderIdentity(user);
   window.LouvorNav.renderDesktopSidebar(user, 'perfil-config');
+  if (window.LouvorTheme) {
+    window.LouvorTheme.refreshThemeControlsUI(user.theme_preference);
+  }
 
   document.getElementById('ministryStatsYearTitle').textContent = `Estatísticas do Ministério (${new Date().getFullYear()})`;
   document.getElementById('profileFullName').textContent = user.full_name;
@@ -121,6 +261,7 @@ function renderProfileData(user) {
   });
 
   renderSkillsList(skills);
+  renderUnavailabilitiesList(user.unavailabilities || []);
 }
 
 function renderSkillsList(skills) {
@@ -130,7 +271,7 @@ function renderSkillsList(skills) {
   if (skills.length === 0) {
     container.innerHTML = `
       <div class="p-4 rounded-xl bg-surface-container-low text-center font-body-sm text-on-surface-variant">
-        Clique em "+ Adicionar" acima para cadastrar seus instrumentos ou funções.
+        Clique em "+ Adicionar" acima para cadastrar seus instrumentos ou categoria vocal (Soprano, Contralto, Tenor).
       </div>
     `;
     return;
@@ -399,30 +540,35 @@ function openAddInstrumentModal() {
   modal.innerHTML = `
     <div class="louvor-modal-card flex flex-col gap-3.5">
       <div class="flex items-center justify-between">
-        <h3 class="font-headline-sm text-on-surface">Adicionar Habilidade / Instrumento</h3>
+        <h3 class="font-headline-sm text-on-surface">Adicionar Categoria Vocal / Instrumento</h3>
         <button type="button" id="closeSkillModalBtn" class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
           <span class="material-symbols-outlined text-[18px]">close</span>
         </button>
       </div>
       <div class="flex flex-col gap-2">
-        <label class="font-label-sm text-on-surface-variant uppercase">Nome da Habilidade</label>
-        <input id="inputSkillName" placeholder="Ex: Guitarra Worship / Violão" class="w-full h-11 px-3 rounded-lg bg-surface-container-lowest text-on-surface" />
+        <label class="font-label-sm text-on-surface-variant uppercase">Categoria na Escala / Enquete</label>
+        <select id="selectSkillCategoryKey" class="w-full h-11 px-3 rounded-lg bg-surface-container-lowest text-on-surface">
+          <option value="soprano" data-icon="mic" data-default-name="Vocal • Soprano">Vocal • Soprano</option>
+          <option value="contralto" data-icon="mic" data-default-name="Vocal • Contralto">Vocal • Contralto</option>
+          <option value="tenor" data-icon="mic" data-default-name="Vocal • Tenor">Vocal • Tenor</option>
+          <option value="vocal" data-icon="mic" data-default-name="Vocal Solo & Backing">Vocal Geral / Backing</option>
+          <option value="teclado" data-icon="piano" data-default-name="Teclado & Synth">Tecladista (Teclado / Piano)</option>
+          <option value="violao" data-icon="queue_music" data-default-name="Violão Acústico">Instrumentista • Violão</option>
+          <option value="guitarra" data-icon="electric_bolt" data-default-name="Guitarra">Instrumentista • Guitarra</option>
+          <option value="baixo" data-icon="graphic_eq" data-default-name="Contrabaixo">Instrumentista • Contrabaixo</option>
+          <option value="bateria" data-icon="album" data-default-name="Bateria Acústica">Instrumentista • Bateria</option>
+          <option value="percussao" data-icon="music_note" data-default-name="Percussão & Outros">Instrumentista • Percussão / Outros</option>
+        </select>
+        <label class="font-label-sm text-on-surface-variant uppercase">Nome de Exibição</label>
+        <input id="inputSkillName" value="Vocal • Soprano" placeholder="Ex: Vocal • Soprano / Teclado" class="w-full h-11 px-3 rounded-lg bg-surface-container-lowest text-on-surface" />
         <label class="font-label-sm text-on-surface-variant uppercase">Equipamento / Observações</label>
-        <input id="inputSkillNotes" placeholder="Ex: Violão Aço • Pedaleira" class="w-full h-11 px-3 rounded-lg bg-surface-container-lowest text-on-surface" />
-        <div class="grid grid-cols-2 gap-2">
-          <select id="selectSkillLevel" class="h-11 px-3 rounded-lg bg-surface-container-lowest text-on-surface">
-            <option value="Principal">Principal</option>
-            <option value="Secundário">Secundário</option>
-            <option value="Suporte">Suporte</option>
-          </select>
-          <select id="selectSkillIcon" class="h-11 px-3 rounded-lg bg-surface-container-lowest text-on-surface">
-            <option value="piano">Teclado (piano)</option>
-            <option value="mic">Vocal (mic)</option>
-            <option value="music_note">Violão/Guitarra</option>
-            <option value="graphic_eq">Baixo/Áudio</option>
-            <option value="album">Bateria</option>
-          </select>
-        </div>
+        <input id="inputSkillNotes" placeholder="Ex: In-Ear Próprio • Pedaleira" class="w-full h-11 px-3 rounded-lg bg-surface-container-lowest text-on-surface" />
+        <label class="font-label-sm text-on-surface-variant uppercase">Nível de Atuação</label>
+        <select id="selectSkillLevel" class="h-11 px-3 rounded-lg bg-surface-container-lowest text-on-surface">
+          <option value="Principal">Principal</option>
+          <option value="Secundário">Secundário</option>
+          <option value="Suporte">Suporte</option>
+        </select>
       </div>
       <div class="flex gap-2 pt-2">
         <button type="button" id="cancelSkillModalBtn" class="flex-1 h-11 rounded-xl bg-surface-container-highest text-on-surface font-label-md">Cancelar</button>
@@ -434,15 +580,25 @@ function openAddInstrumentModal() {
   const close = () => modal.remove();
   modal.querySelector('#closeSkillModalBtn').onclick = close;
   modal.querySelector('#cancelSkillModalBtn').onclick = close;
+
+  const catSelect = modal.querySelector('#selectSkillCategoryKey');
+  const nameInput = modal.querySelector('#inputSkillName');
+  catSelect.onchange = () => {
+    const opt = catSelect.options[catSelect.selectedIndex];
+    if (opt) nameInput.value = opt.getAttribute('data-default-name') || '';
+  };
+
   modal.querySelector('#saveSkillModalBtn').onclick = async () => {
-    const skill_name = modal.querySelector('#inputSkillName').value.trim();
+    const role_key = catSelect.value;
+    const opt = catSelect.options[catSelect.selectedIndex];
+    const icon = (opt && opt.getAttribute('data-icon')) || 'music_note';
+    const skill_name = nameInput.value.trim() || (opt && opt.getAttribute('data-default-name')) || 'Instrumento';
     const equipment_notes = modal.querySelector('#inputSkillNotes').value.trim();
     const level_badge = modal.querySelector('#selectSkillLevel').value;
-    const icon = modal.querySelector('#selectSkillIcon').value;
     try {
       const res = await window.LouvorAPI.request('/api/users/skills', {
         method: 'POST',
-        body: { skill_name, equipment_notes, level_badge, icon, status: 'Ativo' }
+        body: { role_key, skill_name, equipment_notes, level_badge, icon, status: 'Ativo' }
       });
       renderSkillsList(res.skills || []);
       showLocalToast(res.message);
@@ -566,6 +722,7 @@ function openInfoModal(title, contentHtml) {
 
   document.getElementById('btnEditProfile').onclick = openEditProfileModal;
   document.getElementById('btnAddInstrument').onclick = openAddInstrumentModal;
+  document.getElementById('btnAddUnavailability').onclick = openAddUnavailabilityModal;
   document.getElementById('btnEditPreferences').onclick = openPreferencesModal;
   const pwdBtn = document.getElementById('btnOpenChangePasswordModal');
   if (pwdBtn) pwdBtn.onclick = openChangePasswordModal;
@@ -599,7 +756,7 @@ function openInfoModal(title, contentHtml) {
       `
         <p><strong class="text-on-surface">1. Pontualidade e Passagem de Som:</strong> Chegar rigorosamente no horário de passagem de som definido na escala.</p>
         <p><strong class="text-on-surface">2. Preparação Musical:</strong> Ouça as versões de referência e estude as cifras e tons com antecedência mínima de 48h.</p>
-        <p><strong class="text-on-surface">3. Substituições e Trocas:</strong> Solicite trocas pelo LouvorApp com até 24h de antecedência para homologação do líder.</p>
+        <p><strong class="text-on-surface">3. Indisponibilidades &amp; Trocas:</strong> Cadastre períodos de viagem no seu perfil com antecedência ou solicite trocas pelo LouvorApp com até 24h antes do culto.</p>
         <p><strong class="text-on-surface">4. Vestimenta (Dress-code):</strong> Tons sóbrios e alinhados à iluminação de palco.</p>
       `
     );
@@ -609,7 +766,7 @@ function openInfoModal(title, contentHtml) {
     openInfoModal(
       'Termos & Privacidade (LGPD)',
       `
-        <p>Os dados pessoais (Nome, E-mail, Telefone/WhatsApp e Foto de Perfil) armazenados no LouvorApp destinam-se exclusivamente à organização interna das escalas, ensaios e comunicados do Ministério de Louvor.</p>
+        <p>Os dados pessoais (Nome, E-mail, Telefone/WhatsApp, Foto de Perfil e Períodos de Indisponibilidade) armazenados no LouvorApp destinam-se exclusivamente à organização interna das escalas, ensaios e comunicados do Ministério de Louvor.</p>
         <p>Senhas são criptografadas com hash seguro (scrypt + salt) e o controle de acesso é validado em todas as rotas do servidor.</p>
       `
     );

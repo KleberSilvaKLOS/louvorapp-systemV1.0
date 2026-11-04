@@ -49,7 +49,8 @@ const ScheduleController = {
           full_name: c.full_name,
           title: c.title,
           whatsapp: c.whatsapp,
-          skills: c.skills
+          skills: c.skills,
+          unavailabilities: c.unavailabilities || []
         })),
       stats: {
         monthSchedules: monthItems.length,

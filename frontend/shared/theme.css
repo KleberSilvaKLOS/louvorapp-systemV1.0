@@ -1,47 +1,156 @@
 /**
- * LOUVORAPP DESIGN SYSTEM - SHARED THEME & RESPONSIVE LAYOUT
- * Rigorosamente fiel ao arquivo DESIGN.md e às 6 telas originais do ZIP.
+ * LOUVORAPP DESIGN SYSTEM - SHARED THEME (DARK MODE, LIGHT MODE & SYSTEM AUTO)
+ * Suporta alternância instantânea entre Tema Escuro (Dark Stage), Tema Claro (Light Mode)
+ * e Automático (Sistema Operacional) com variáveis RGB que preservam modificadores de opacidade do Tailwind.
  */
-:root {
-  --surface: #0f131c;
-  --surface-dim: #0f131c;
-  --surface-bright: #353942;
-  --surface-container-lowest: #0a0e16;
-  --surface-container-low: #181c24;
-  --surface-container: #1c2028;
-  --surface-container-high: #262a33;
-  --surface-container-highest: #31353e;
-  --on-surface: #dfe2ee;
-  --on-surface-variant: #c2c6d6;
-  --outline: #8c909f;
-  --outline-variant: #424754;
-  --primary: #adc6ff;
-  --on-primary: #002e6a;
-  --primary-container: #4d8eff;
-  --on-primary-container: #00285d;
-  --secondary: #4edea3;
-  --on-secondary: #003824;
-  --secondary-container: #00a572;
-  --on-secondary-container: #00311f;
-  --tertiary: #ffb95f;
-  --on-tertiary: #472a00;
-  --tertiary-container: #ca8100;
-  --on-tertiary-container: #3e2400;
-  --error: #ffb4ab;
-  --on-error: #690005;
-  --error-container: #93000a;
-  --on-error-container: #ffdad6;
+:root,
+html.dark {
+  color-scheme: dark;
+  --rgb-surface: 15 19 28;
+  --rgb-surface-dim: 15 19 28;
+  --rgb-surface-bright: 53 57 66;
+  --rgb-surface-container-lowest: 10 14 22;
+  --rgb-surface-container-low: 24 28 36;
+  --rgb-surface-container: 28 32 40;
+  --rgb-surface-container-high: 38 42 51;
+  --rgb-surface-container-highest: 49 53 62;
+  --rgb-surface-variant: 49 53 62;
+  --rgb-on-surface: 223 226 238;
+  --rgb-on-surface-variant: 194 198 214;
+  --rgb-outline: 140 144 159;
+  --rgb-outline-variant: 66 71 84;
+  --rgb-primary: 173 198 255;
+  --rgb-on-primary: 0 46 106;
+  --rgb-primary-container: 77 142 255;
+  --rgb-on-primary-container: 0 40 93;
+  --rgb-primary-fixed: 216 226 255;
+  --rgb-primary-fixed-dim: 173 198 255;
+  --rgb-on-primary-fixed: 0 26 66;
+  --rgb-on-primary-fixed-variant: 0 67 149;
+  --rgb-secondary: 78 222 163;
+  --rgb-on-secondary: 0 56 36;
+  --rgb-secondary-container: 0 165 114;
+  --rgb-on-secondary-container: 0 49 31;
+  --rgb-secondary-fixed: 111 251 190;
+  --rgb-secondary-fixed-dim: 78 222 163;
+  --rgb-on-secondary-fixed: 0 33 19;
+  --rgb-on-secondary-fixed-variant: 0 82 54;
+  --rgb-tertiary: 255 185 95;
+  --rgb-on-tertiary: 71 42 0;
+  --rgb-tertiary-container: 202 129 0;
+  --rgb-on-tertiary-container: 62 36 0;
+  --rgb-tertiary-fixed: 255 221 184;
+  --rgb-tertiary-fixed-dim: 255 185 95;
+  --rgb-on-tertiary-fixed: 42 23 0;
+  --rgb-on-tertiary-fixed-variant: 101 62 0;
+  --rgb-error: 255 180 171;
+  --rgb-on-error: 105 0 5;
+  --rgb-error-container: 147 0 10;
+  --rgb-on-error-container: 255 218 214;
+  --rgb-inverse-surface: 223 226 238;
+  --rgb-inverse-on-surface: 44 48 57;
+  --rgb-inverse-primary: 0 90 194;
+
+  --surface: rgb(var(--rgb-surface));
+  --on-surface: rgb(var(--rgb-on-surface));
+  --surface-container-lowest: rgb(var(--rgb-surface-container-lowest));
+  --surface-container-low: rgb(var(--rgb-surface-container-low));
+  --surface-container: rgb(var(--rgb-surface-container));
+  --surface-container-high: rgb(var(--rgb-surface-container-high));
+  --surface-container-highest: rgb(var(--rgb-surface-container-highest));
+  --outline-variant: rgb(var(--rgb-outline-variant));
+  --modal-backdrop: rgba(10, 14, 22, 0.82);
+  --modal-shadow: 0 20px 45px rgba(0, 0, 0, 0.65);
+}
+
+html.light {
+  color-scheme: light;
+  --rgb-surface: 243 246 252;
+  --rgb-surface-dim: 232 237 247;
+  --rgb-surface-bright: 255 255 255;
+  --rgb-surface-container-lowest: 255 255 255;
+  --rgb-surface-container-low: 255 255 255;
+  --rgb-surface-container: 237 241 250;
+  --rgb-surface-container-high: 226 232 245;
+  --rgb-surface-container-highest: 213 221 238;
+  --rgb-surface-variant: 218 225 240;
+  --rgb-on-surface: 15 23 42;
+  --rgb-on-surface-variant: 71 85 105;
+  --rgb-outline: 100 116 139;
+  --rgb-outline-variant: 203 213 225;
+  --rgb-primary: 37 99 235;
+  --rgb-on-primary: 255 255 255;
+  --rgb-primary-container: 37 99 235;
+  --rgb-on-primary-container: 255 255 255;
+  --rgb-primary-fixed: 219 234 254;
+  --rgb-primary-fixed-dim: 29 78 216;
+  --rgb-on-primary-fixed: 255 255 255;
+  --rgb-on-primary-fixed-variant: 30 64 175;
+  --rgb-secondary: 5 150 105;
+  --rgb-on-secondary: 255 255 255;
+  --rgb-secondary-container: 16 185 129;
+  --rgb-on-secondary-container: 255 255 255;
+  --rgb-secondary-fixed: 209 250 229;
+  --rgb-secondary-fixed-dim: 4 120 87;
+  --rgb-on-secondary-fixed: 6 78 59;
+  --rgb-on-secondary-fixed-variant: 6 95 70;
+  --rgb-tertiary: 180 83 9;
+  --rgb-on-tertiary: 255 255 255;
+  --rgb-tertiary-container: 217 119 6;
+  --rgb-on-tertiary-container: 255 255 255;
+  --rgb-tertiary-fixed: 254 243 199;
+  --rgb-tertiary-fixed-dim: 180 83 9;
+  --rgb-on-tertiary-fixed: 120 53 15;
+  --rgb-on-tertiary-fixed-variant: 146 64 14;
+  --rgb-error: 220 38 38;
+  --rgb-on-error: 255 255 255;
+  --rgb-error-container: 254 226 226;
+  --rgb-on-error-container: 153 27 27;
+  --rgb-inverse-surface: 30 41 59;
+  --rgb-inverse-on-surface: 248 250 252;
+  --rgb-inverse-primary: 147 197 253;
+
+  --surface: rgb(var(--rgb-surface));
+  --on-surface: rgb(var(--rgb-on-surface));
+  --surface-container-lowest: rgb(var(--rgb-surface-container-lowest));
+  --surface-container-low: rgb(var(--rgb-surface-container-low));
+  --surface-container: rgb(var(--rgb-surface-container));
+  --surface-container-high: rgb(var(--rgb-surface-container-high));
+  --surface-container-highest: rgb(var(--rgb-surface-container-highest));
+  --outline-variant: rgb(var(--rgb-outline-variant));
+  --modal-backdrop: rgba(15, 23, 42, 0.52);
+  --modal-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
 }
 
 html, body {
   width: 100%;
   margin: 0;
   padding: 0;
-  background-color: #0f131c;
-  color: #dfe2ee;
+  background-color: var(--surface) !important;
+  color: var(--on-surface);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Refinamentos visuais de contraste para o Tema Claro (Light Mode) */
+html.light .bg-surface-container-low {
+  border: 1px solid rgba(203, 213, 225, 0.65);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+html.light input,
+html.light select,
+html.light textarea {
+  border: 1px solid rgba(203, 213, 225, 0.85);
+}
+html.light header.fixed {
+  border-bottom: 1px solid rgba(203, 213, 225, 0.7);
+  box-shadow: 0 1px 6px rgba(15, 23, 42, 0.06);
+}
+html.light nav.fixed.bottom-0 {
+  border-top: 1px solid rgba(203, 213, 225, 0.75);
+  box-shadow: 0 -2px 12px rgba(15, 23, 42, 0.06);
 }
 
 .pb-safe {
@@ -56,10 +165,10 @@ html, body {
   height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #0a0e16;
+  background: var(--surface-container-lowest);
 }
 ::-webkit-scrollbar-thumb {
-  background: #31353e;
+  background: var(--surface-container-highest);
   border-radius: 9999px;
 }
 
@@ -113,10 +222,11 @@ html, body {
     left: 0;
     bottom: 0;
     width: 256px;
-    background-color: #0a0e16;
-    border-right: 1px solid rgba(66, 71, 84, 0.45);
+    background-color: var(--surface-container-lowest);
+    border-right: 1px solid var(--outline-variant);
     z-index: 60;
     padding: 1.25rem 1rem;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
   }
 }
 
@@ -125,7 +235,7 @@ html, body {
   position: fixed;
   inset: 0;
   z-index: 80;
-  background-color: rgba(10, 14, 22, 0.82);
+  background-color: var(--modal-backdrop);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -135,12 +245,13 @@ html, body {
 
 .louvor-modal-card {
   width: 100%;
-  max-width: 480px;
+  max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
-  background-color: #1c2028;
-  border: 1px solid #424754;
+  background-color: var(--surface-container);
+  color: var(--on-surface);
+  border: 1px solid var(--outline-variant);
   border-radius: 1rem;
   padding: 1.25rem;
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.65);
+  box-shadow: var(--modal-shadow);
 }

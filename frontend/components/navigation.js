@@ -1,8 +1,8 @@
 /**
- * LOUVORAPP - COMPONENTE COMPARTILHADO DE NAVEGAÇÃO, HEADER, AVATARES E TUTORIAL DE PRIMEIRO ACESSO
+ * LOUVORAPP - COMPONENTE COMPARTILHADO DE NAVEGAÇÃO, HEADER, TEMA (CLARO/ESCURO/SISTEMA) E TUTORIAL
  * - Exibe placeholder sem foto quando o usuário ainda não definiu foto de perfil.
+ * - Injeta botão rápido de alternância de tema (Claro / Escuro / Sistema) no Header e na Sidebar.
  * - Exibe automaticamente o Guia Passo a Passo no primeiro acesso após o cadastro.
- * - Oculta tanto [data-notif-badge] quanto #notifCountPill ao marcar notificações como lidas.
  */
 (function (window) {
   const NAV_ITEMS = [
@@ -91,9 +91,10 @@
 
     const visibleItems = NAV_ITEMS.filter((it) => canAccessItem(user, it));
     const isAdmin = user && user.role === 'ADMIN';
+    const themeMeta = window.LouvorTheme ? window.LouvorTheme.getThemeMeta() : { icon: 'dark_mode', label: 'Escuro' };
 
     sidebar.innerHTML = `
-      <div class="flex flex-col gap-6">
+      <div class="flex flex-col gap-5">
         <a href="/pages/calendario-escalas/index.html" class="flex items-center gap-3 px-2 pt-1">
           <img src="/assets/images/logo-louvorapp.svg" alt="LouvorApp" class="w-9 h-9 rounded-xl object-contain shadow-sm" />
           <div class="flex flex-col">
@@ -144,7 +145,14 @@
             : ''
         }
 
-        <div class="pt-2 border-t border-outline-variant/30">
+        <div class="pt-2 border-t border-outline-variant/30 flex flex-col gap-1.5">
+          <button type="button" onclick="window.LouvorTheme.cycleTheme()" class="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface font-label-md transition-colors" title="Alternar entre Tema Escuro, Claro e Automático">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-[18px] text-tertiary" data-theme-icon="">${themeMeta.icon}</span>
+              <span>Aparência</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full bg-surface-container-highest text-on-surface font-label-sm text-[10px]" data-theme-label="">${themeMeta.label}</span>
+          </button>
           <button type="button" onclick="window.LouvorNav.openFirstAccessGuide()" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-surface-container-low hover:bg-surface-container text-primary font-label-md transition-colors">
             <span class="material-symbols-outlined text-[18px]">help</span>
             <span>Como Usar o App</span>
@@ -170,6 +178,26 @@
       </div>
     `;
     document.body.appendChild(sidebar);
+  }
+
+  function injectHeaderThemeButton() {
+    const notifBtn = document.querySelector('header [aria-label^="Notifica"]');
+    if (!notifBtn || !notifBtn.parentElement) return;
+    if (document.getElementById('headerThemeToggleBtn')) return;
+
+    const meta = window.LouvorTheme ? window.LouvorTheme.getThemeMeta() : { icon: 'dark_mode', label: 'Escuro' };
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'headerThemeToggleBtn';
+    btn.setAttribute('aria-label', 'Alternar Tema (Claro / Escuro / Sistema)');
+    btn.title = 'Alternar Tema: Escuro • Claro • Sistema';
+    btn.className =
+      'relative flex items-center justify-center w-10 h-10 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors active:scale-95';
+    btn.innerHTML = `<span class="material-symbols-outlined text-[21px]" data-theme-icon="">${meta.icon}</span>`;
+    btn.onclick = () => {
+      if (window.LouvorTheme) window.LouvorTheme.cycleTheme();
+    };
+    notifBtn.parentElement.insertBefore(btn, notifBtn);
   }
 
   function wireBottomNav(user, activeId) {
@@ -254,18 +282,18 @@
           'Seu perfil foi criado com sucesso e está 100% zerado, pronto para uso. Veja este guia rápido de 1 minuto para conhecer cada área do LouvorApp.',
         bullets: [
           'Navegue pelas abas usando o menu inferior (no celular) ou a barra lateral (no computador).',
-          'Todas as suas confirmações, votos e preferências ficam salvos na nuvem em tempo real.'
+          'Alterne entre Tema Escuro, Tema Claro ou Automático do Sistema a qualquer momento no ícone de aparência no topo.'
         ]
       },
       {
         icon: 'calendar_month',
         color: 'text-primary',
-        badge: 'Passo 2 de 4 • Calendário & Enquetes',
+        badge: 'Passo 2 de 4 • Calendário & Enquetes por Categoria',
         title: 'Consulte o Calendário e Vote nas Enquetes',
         description:
           'O Calendário abre automaticamente no mês atual da sua máquina e mostra todos os cultos confirmados e ensaios agendados.',
         bullets: [
-          'Na aba "Enquetes", informe se você está Disponível ou Indisponível para as próximas datas.',
+          'Na aba "Enquetes", confirme sua disponibilidade escolhendo sua função/voz (Soprano, Contralto, Tenor, Teclado ou Instrumento).',
           'Ao tocar em um dia do Calendário, você visualiza a equipe escalada, horários de passagem de som e o Repertório com cifras e tons.'
         ]
       },
@@ -284,17 +312,17 @@
       {
         icon: 'account_circle',
         color: 'text-secondary',
-        badge: 'Passo 4 de 4 • Foto de Perfil & Habilidades',
+        badge: 'Passo 4 de 4 • Foto, Indisponibilidades & Tema',
         title: isAdmin
-          ? 'Configure sua Foto, Habilidades e Painel Líder'
-          : 'Adicione sua Foto de Perfil e Habilidades',
+          ? 'Configure sua Foto, Indisponibilidades e Painel Líder'
+          : 'Configure sua Foto, Indisponibilidades e Habilidades',
         description:
-          'Seu cadastro começa sem foto de perfil para você personalizar como preferir.',
+          'Personalize seu perfil e informe datas em que estará viajando para não ser escalado por engano.',
         bullets: [
-          'Acesse a aba "Perfil/Config" e toque no ícone da câmera sobre o avatar para enviar sua foto de perfil.',
-          'Cadastre ou edite seus instrumentos, preferências de horário, senha e alertas.',
+          'Acesse "Perfil/Config" para enviar sua foto de perfil, escolher o Tema (Claro, Escuro ou Sistema) e cadastrar suas vozes/instrumentos.',
+          'Em "Períodos de Indisponibilidade", informe viagens ou compromissos para que o sistema bloqueie escalas naquelas datas automaticamente.',
           ...(isAdmin
-            ? ['Como seu e-mail está autorizado como ADMIN, você também pode criar escalas, abrir enquetes, aprovar trocas e gerenciar usuários!']
+            ? ['Como ADMIN, você pode definir vagas por categoria nas enquetes, visualizar individualmente quem votou e aprovar trocas!']
             : [])
         ]
       }
@@ -485,8 +513,13 @@
     const user = await window.LouvorAPI.requireUser({ adminOnly });
     if (!user) return null;
 
+    if (window.LouvorTheme && user.theme_preference) {
+      window.LouvorTheme.applyTheme(user.theme_preference);
+    }
+
     renderDesktopSidebar(user, activeTab);
     wireBottomNav(user, activeTab);
+    injectHeaderThemeButton();
     updateHeaderIdentity(user);
 
     document.querySelectorAll('[aria-label^="Notifica"]').forEach((btn) => {

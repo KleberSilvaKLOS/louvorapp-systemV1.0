@@ -30,7 +30,8 @@ const SwapController = {
         id: c.id,
         full_name: c.full_name,
         title: c.title,
-        whatsapp: c.whatsapp
+        whatsapp: c.whatsapp,
+        unavailabilities: c.unavailabilities || []
       }))
     });
   },
@@ -49,6 +50,19 @@ const SwapController = {
       const err = new Error('Escala informada não existe.');
       err.status = 404;
       throw err;
+    }
+
+    // Verifica se o substituto indicado cadastrou indisponibilidade para a data do evento
+    if (substitute_id) {
+      const subUnavail = await UserModel.getUserUnavailabilityOnDate(parseInt(substitute_id, 10), schedule.event_date);
+      if (subUnavail) {
+        const subUser = await UserModel.findById(parseInt(substitute_id, 10));
+        const err = new Error(
+          `O substituto ${subUser ? subUser.full_name : 'selecionado'} informou indisponibilidade para ${schedule.event_date} (${subUnavail.start_date} a ${subUnavail.end_date}: ${subUnavail.reason}).`
+        );
+        err.status = 400;
+        throw err;
+      }
     }
 
     const settings = await SettingsModel.getAllSettings();
@@ -191,16 +205,35 @@ const SwapController = {
       throw err;
     }
 
+    const existingSwap = await SwapModel.getById(req.params.id);
+    if (!existingSwap) {
+      const err = new Error('Solicitação de troca não encontrada.');
+      err.status = 404;
+      throw err;
+    }
+
+    const targetSubId = substitute_id ? parseInt(substitute_id, 10) : existingSwap.substitute_id;
+    if (
+      targetSubId &&
+      (action === 'approve' || action === 'approve_with_note' || action === 'manual_assign') &&
+      existingSwap.schedule
+    ) {
+      const subUnavail = await UserModel.getUserUnavailabilityOnDate(targetSubId, existingSwap.schedule.event_date);
+      if (subUnavail) {
+        const subUser = await UserModel.findById(targetSubId);
+        const err = new Error(
+          `Não é possível aprovar substituição para ${subUser ? subUser.full_name : 'o membro'}: indisponibilidade cadastrada em ${existingSwap.schedule.event_date} (${subUnavail.start_date} a ${subUnavail.end_date}: ${subUnavail.reason}).`
+        );
+        err.status = 400;
+        throw err;
+      }
+    }
+
     const resolved = await SwapModel.resolveSwap(
       req.params.id,
       { action, admin_note, substitute_id: substitute_id ? parseInt(substitute_id, 10) : null },
       req.user.id
     );
-    if (!resolved) {
-      const err = new Error('Solicitação de troca não encontrada.');
-      err.status = 404;
-      throw err;
-    }
 
     await UserModel.createNotification({
       user_id: resolved.requester_id,
@@ -265,6 +298,10 @@ const SwapController = {
     const readySwaps = allPending.filter((s) => s.substitute_id && s.urgency_type !== 'conflict');
     const approvedIds = [];
     for (const s of readySwaps) {
+      if (s.schedule) {
+        const subUnavail = await UserModel.getUserUnavailabilityOnDate(s.substitute_id, s.schedule.event_date);
+        if (subUnavail) continue;
+      }
       await SwapModel.resolveSwap(s.id, { action: 'approve', admin_note: 'Aprovação Inteligente' }, req.user.id);
       approvedIds.push(s.id);
     }

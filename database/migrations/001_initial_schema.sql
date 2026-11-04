@@ -30,13 +30,14 @@ CREATE TABLE IF NOT EXISTS users (
   completed_schedules_count INTEGER NOT NULL DEFAULT 0,
   attendance_rate INTEGER NOT NULL DEFAULT 0,
   first_access_completed INTEGER NOT NULL DEFAULT 0,
+  theme_preference TEXT NOT NULL DEFAULT 'system' CHECK(theme_preference IN ('dark', 'light', 'system')),
   reset_token TEXT,
   reset_token_expires TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- 2. Tabela de Habilidades / Instrumentos do Usuário
+-- 2. Tabela de Habilidades / Instrumentos / Vozes do Usuário
 CREATE TABLE IF NOT EXISTS user_skills (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
@@ -47,6 +48,17 @@ CREATE TABLE IF NOT EXISTS user_skills (
   status TEXT NOT NULL DEFAULT 'Ativo' CHECK(status IN ('Ativo', 'Standby')),
   icon TEXT NOT NULL DEFAULT 'music_note',
   color_variant TEXT NOT NULL DEFAULT 'primary',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 2b. Tabela de Períodos de Indisponibilidade dos Integrantes (Viagens, Compromissos, Férias)
+CREATE TABLE IF NOT EXISTS user_unavailabilities (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  start_date TEXT NOT NULL,
+  end_date TEXT NOT NULL,
+  reason TEXT NOT NULL DEFAULT 'Indisponibilidade informada',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -198,7 +210,7 @@ CREATE TABLE IF NOT EXISTS polls (
   FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- 11. Tabela de Metas por Instrumento na Enquete
+-- 11. Tabela de Metas por Categoria/Instrumento na Enquete
 CREATE TABLE IF NOT EXISTS poll_targets (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   poll_id INTEGER NOT NULL,
@@ -216,6 +228,7 @@ CREATE TABLE IF NOT EXISTS poll_votes (
   poll_id INTEGER NOT NULL,
   user_id INTEGER NOT NULL,
   is_available INTEGER NOT NULL DEFAULT 1,
+  role_key TEXT NOT NULL DEFAULT 'vocal',
   role_label TEXT DEFAULT '',
   notes TEXT DEFAULT '',
   voted_at TEXT NOT NULL DEFAULT (datetime('now')),

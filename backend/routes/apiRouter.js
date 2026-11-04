@@ -51,7 +51,7 @@ const apiRouter = new Router();
 
 // Healthcheck
 apiRouter.register('GET', '/api/health', async (req, res) => {
-  sendJson(res, 200, { ok: true, status: 'healthy', version: '2.4.1', timestamp: new Date().toISOString() });
+  sendJson(res, 200, { ok: true, status: 'healthy', version: '2.5.0', timestamp: new Date().toISOString() });
 }, false);
 
 // Public Settings (banner de ensaio e nome do ministério)
@@ -90,6 +90,7 @@ apiRouter.register('POST', '/api/swaps/:id/alert', SwapController.dispatchAlert,
 
 // Polls Routes
 apiRouter.register('GET', '/api/polls', PollController.list, true);
+apiRouter.register('GET', '/api/polls/:id/votes', PollController.getVotesDetail, true);
 apiRouter.register('POST', '/api/polls', PollController.create, true);
 apiRouter.register('POST', '/api/polls/:id/vote', PollController.vote, true);
 apiRouter.register('POST', '/api/polls/:id/generate-roster', PollController.generateRoster, true);
@@ -103,9 +104,12 @@ apiRouter.register('POST', '/api/repertoire', RepertoireController.create, true)
 apiRouter.register('PUT', '/api/repertoire/:id', RepertoireController.update, true);
 apiRouter.register('DELETE', '/api/repertoire/:id', RepertoireController.remove, true);
 
-// Users, Skills & Notifications Routes
+// Users, Skills, Unavailabilities & Notifications Routes
 apiRouter.register('GET', '/api/users/profile', UserController.getMyProfile, true);
 apiRouter.register('PUT', '/api/users/profile', UserController.updateMyProfile, true);
+apiRouter.register('GET', '/api/users/unavailabilities', UserController.listUnavailabilities, true);
+apiRouter.register('POST', '/api/users/unavailabilities', UserController.addMyUnavailability, true);
+apiRouter.register('DELETE', '/api/users/unavailabilities/:unavailabilityId', UserController.deleteMyUnavailability, true);
 apiRouter.register('POST', '/api/users/skills', UserController.addMySkill, true);
 apiRouter.register('PUT', '/api/users/skills/:skillId', UserController.updateMySkill, true);
 apiRouter.register('DELETE', '/api/users/skills/:skillId', UserController.deleteMySkill, true);

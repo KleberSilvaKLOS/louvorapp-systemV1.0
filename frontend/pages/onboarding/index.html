@@ -16,6 +16,14 @@
 </head>
 <body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen selection:bg-primary-container selection:text-on-primary-container pt-safe pb-safe">
   <main class="flex flex-col relative w-full bg-surface min-h-screen">
+    <!-- Botão rápido de Tema (Escuro / Claro / Sistema) no topo -->
+    <div class="fixed top-4 right-4 z-40">
+      <button aria-label="Alternar Tema" class="px-3 py-1.5 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface font-label-sm flex items-center gap-1.5 shadow-md transition-all active:scale-95" onclick="window.LouvorTheme.cycleTheme()" title="Alternar entre Tema Escuro, Claro e Automático" type="button">
+        <span class="material-symbols-outlined text-[18px] text-tertiary" data-theme-icon="">dark_mode</span>
+        <span data-theme-label="">Escuro</span>
+      </button>
+    </div>
+
     <div class="flex flex-col w-full app-shell-container px-margin pb-space-xl space-y-space-lg">
       <!-- Brand Header & Mascot Welcome -->
       <div class="flex flex-col items-center text-center pt-space-md">
@@ -88,29 +96,50 @@
           </div>
         </div>
 
-        <!-- Skills & Roles Selection -->
+        <!-- Skills & Roles Selection (Vozes: Soprano, Contralto, Tenor + Instrumentos) -->
         <div class="flex flex-col p-space-md rounded-xl bg-surface-container-low shadow-sm space-y-space-md">
           <div class="flex flex-col">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <span class="material-symbols-outlined text-secondary text-headline-sm">music_note</span>
-                <span class="font-headline-sm text-headline-sm text-on-surface">Funções &amp; Instrumentos</span>
+                <span class="font-headline-sm text-headline-sm text-on-surface">Vozes &amp; Instrumentos</span>
               </div>
               <span class="px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm" id="roleCounter">2 selecionados</span>
             </div>
             <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
-              Toque para escolher todas as áreas em que você atua nos cultos e ensaios.
+              Toque para escolher sua classificação vocal (Soprano, Contralto, Tenor) e/ou instrumentos em que atua.
             </p>
           </div>
 
           <!-- Chip Multi-Select Grid -->
           <div class="grid grid-cols-2 gap-2.5" id="rolesContainer">
-            <button aria-pressed="true" class="role-pill flex items-center justify-between px-3.5 py-3 rounded-lg bg-primary-container text-on-primary font-label-lg text-label-lg transition-transform active:scale-95 shadow-sm text-left" data-role="vocal" onclick="toggleRole(this)" type="button">
+            <button aria-pressed="true" class="role-pill flex items-center justify-between px-3.5 py-3 rounded-lg bg-primary-container text-on-primary font-label-lg text-label-lg transition-transform active:scale-95 shadow-sm text-left" data-role="soprano" onclick="toggleRole(this)" type="button">
               <div class="flex items-center gap-2.5 truncate">
                 <span class="material-symbols-outlined text-headline-sm" style="font-variation-settings: 'FILL' 1;">mic</span>
-                <span class="truncate">Vocal</span>
+                <span class="truncate">Soprano</span>
               </div>
               <span class="material-symbols-outlined check-icon text-body-lg">check_circle</span>
+            </button>
+            <button aria-pressed="false" class="role-pill flex items-center justify-between px-3.5 py-3 rounded-lg bg-surface-container text-on-surface-variant font-label-lg text-label-lg transition-transform active:scale-95 text-left" data-role="contralto" onclick="toggleRole(this)" type="button">
+              <div class="flex items-center gap-2.5 truncate">
+                <span class="material-symbols-outlined text-headline-sm">mic</span>
+                <span class="truncate">Contralto</span>
+              </div>
+              <span class="material-symbols-outlined check-icon text-body-lg opacity-0">check_circle</span>
+            </button>
+            <button aria-pressed="false" class="role-pill flex items-center justify-between px-3.5 py-3 rounded-lg bg-surface-container text-on-surface-variant font-label-lg text-label-lg transition-transform active:scale-95 text-left" data-role="tenor" onclick="toggleRole(this)" type="button">
+              <div class="flex items-center gap-2.5 truncate">
+                <span class="material-symbols-outlined text-headline-sm">mic</span>
+                <span class="truncate">Tenor</span>
+              </div>
+              <span class="material-symbols-outlined check-icon text-body-lg opacity-0">check_circle</span>
+            </button>
+            <button aria-pressed="false" class="role-pill flex items-center justify-between px-3.5 py-3 rounded-lg bg-surface-container text-on-surface-variant font-label-lg text-label-lg transition-transform active:scale-95 text-left" data-role="teclado" onclick="toggleRole(this)" type="button">
+              <div class="flex items-center gap-2.5 truncate">
+                <span class="material-symbols-outlined text-headline-sm">piano</span>
+                <span class="truncate">Teclado</span>
+              </div>
+              <span class="material-symbols-outlined check-icon text-body-lg opacity-0">check_circle</span>
             </button>
             <button aria-pressed="true" class="role-pill flex items-center justify-between px-3.5 py-3 rounded-lg bg-primary-container text-on-primary font-label-lg text-label-lg transition-transform active:scale-95 shadow-sm text-left" data-role="violao" onclick="toggleRole(this)" type="button">
               <div class="flex items-center gap-2.5 truncate">
@@ -123,13 +152,6 @@
               <div class="flex items-center gap-2.5 truncate">
                 <span class="material-symbols-outlined text-headline-sm">electric_bolt</span>
                 <span class="truncate">Guitarra</span>
-              </div>
-              <span class="material-symbols-outlined check-icon text-body-lg opacity-0">check_circle</span>
-            </button>
-            <button aria-pressed="false" class="role-pill flex items-center justify-between px-3.5 py-3 rounded-lg bg-surface-container text-on-surface-variant font-label-lg text-label-lg transition-transform active:scale-95 text-left" data-role="teclado" onclick="toggleRole(this)" type="button">
-              <div class="flex items-center gap-2.5 truncate">
-                <span class="material-symbols-outlined text-headline-sm">piano</span>
-                <span class="truncate">Teclado</span>
               </div>
               <span class="material-symbols-outlined check-icon text-body-lg opacity-0">check_circle</span>
             </button>

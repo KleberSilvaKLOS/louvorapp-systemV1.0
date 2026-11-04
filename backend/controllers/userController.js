@@ -54,10 +54,50 @@ const UserController = {
     });
   },
 
+  async listUnavailabilities(req, res) {
+    await requirePermission(req, 'profile', 'view');
+    if (req.query.date || req.query.all === '1') {
+      const unavailabilities = await UserModel.getAllUnavailabilities({ date: req.query.date || '' });
+      return sendJson(res, 200, { ok: true, unavailabilities });
+    }
+    const unavailabilities = await UserModel.getUserUnavailabilities(req.user.id);
+    sendJson(res, 200, { ok: true, unavailabilities });
+  },
+
+  async addMyUnavailability(req, res) {
+    await requirePermission(req, 'profile', 'edit');
+    const targetUserId =
+      req.user.role === 'ADMIN' && req.body.user_id ? parseInt(req.body.user_id, 10) : req.user.id;
+    const created = await UserModel.addUnavailability(targetUserId, {
+      start_date: req.body.start_date,
+      end_date: req.body.end_date || req.body.start_date,
+      reason: req.body.reason
+    });
+    const unavailabilities = await UserModel.getUserUnavailabilities(targetUserId);
+    sendJson(res, 201, {
+      ok: true,
+      message: 'Período de indisponibilidade registrado! O sistema bloqueará escalas nestas datas.',
+      unavailability: created,
+      unavailabilities
+    });
+  },
+
+  async deleteMyUnavailability(req, res) {
+    await requirePermission(req, 'profile', 'edit');
+    const id = parseInt(req.params.unavailabilityId, 10);
+    await UserModel.removeUnavailability(id, req.user.id, req.user.role === 'ADMIN');
+    const unavailabilities = await UserModel.getUserUnavailabilities(req.user.id);
+    sendJson(res, 200, {
+      ok: true,
+      message: 'Período de indisponibilidade removido.',
+      unavailabilities
+    });
+  },
+
   async addMySkill(req, res) {
     await requirePermission(req, 'profile', 'edit');
-    if (!req.body.skill_name) {
-      const err = new Error('Informe o nome da função ou instrumento.');
+    if (!req.body.skill_name && !req.body.role_key) {
+      const err = new Error('Informe o nome da função, voz ou instrumento.');
       err.status = 400;
       throw err;
     }

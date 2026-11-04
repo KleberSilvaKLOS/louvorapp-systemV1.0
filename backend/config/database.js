@@ -301,7 +301,11 @@ class DatabaseManager {
         .sort();
     }
     if (files.length === 0) {
-      for (const fallback of ['001_initial_schema.sql', '002_performance_indexes.sql']) {
+      for (const fallback of [
+        '001_initial_schema.sql',
+        '002_performance_indexes.sql',
+        '003_unavailabilities_and_theme.sql'
+      ]) {
         if (fs.existsSync(path.join(config.migrationsDir, fallback))) {
           files.push(fallback);
         }
@@ -311,6 +315,16 @@ class DatabaseManager {
     for (const file of files) {
       const sql = fs.readFileSync(path.join(config.migrationsDir, file), 'utf8');
       await this.exec(sql);
+    }
+
+    // Garante compatibilidade com bancos existentes criados em versões anteriores
+    const userCols = await this.writer.send({ action: 'all', sql: 'PRAGMA table_info(users);', params: [] });
+    if (!userCols.some((c) => c.name === 'theme_preference')) {
+      await this.run("ALTER TABLE users ADD COLUMN theme_preference TEXT NOT NULL DEFAULT 'system'");
+    }
+    const voteCols = await this.writer.send({ action: 'all', sql: 'PRAGMA table_info(poll_votes);', params: [] });
+    if (!voteCols.some((c) => c.name === 'role_key')) {
+      await this.run("ALTER TABLE poll_votes ADD COLUMN role_key TEXT NOT NULL DEFAULT 'vocal'");
     }
   }
 

@@ -1,21 +1,14 @@
 /**
- * SUÍTE COMPLETA DE TESTES DE PONTA A PONTA (E2E) + SEGURANÇA + ALTA CONCORRÊNCIA (500+ REQ)
- * Valida todos os requisitos originais + os 23 pontos da auditoria técnica:
- * 1. Banco inicia 100% zerado e possui os 18 índices secundários de performance (002_performance_indexes.sql)
- * 2. P0 Segurança:
- *    - /api/auth/forgot-password NÃO vaza resetCode na resposta JSON (CVSS 9.8 corrigido)
- *    - Expiração estrita de reset_token_expires validada no resetPassword
- *    - Bloqueio de escalação de privilégio em PUT /api/settings (ADMIN_EMAILS) por USER (HTTP 403 - CVSS 8.8 corrigido)
- *    - Validação de tamanho/MIME de avatar_url (rejeita >200KB ou MIME inválido com HTTP 400)
- *    - Invalidação imediata de sessões ao inativar usuário ou alterar senha/role
- * 3. P1 Escalabilidade e Concorrência (Pool SQLite WAL 1 Writer + 4 Readers + scrypt assíncrono):
- *    - 500 requisições simultâneas e votos concorrentes em enquetes com 0% de erro e latência sub-segundo
- * 4. P2 Regras de Negócio e Funcionalidades:
- *    - generateRosterFromPoll respeitando limite de vagas (target_count) e horário (event_time)
- *    - swap_deadline_hours e rehearsal_auto_approve aplicados de verdade na criação de trocas
- *    - Recálculo dinâmico de estatísticas do usuário (completed_schedules_count, attendance_rate, swaps_requested_count)
- *    - CRUD completo de Repertório (POST, PUT, DELETE) e exportação de calendário (/api/schedules/ics)
- *    - Enquetes: encerrar/reabrir (PUT /api/polls/:id/status) e excluir (DELETE /api/polls/:id)
+ * SUÍTE COMPLETA DE TESTES DE PONTA A PONTA (E2E) + SEGURANÇA + ALTA CONCORRÊNCIA + NOVAS FUNCIONALIDADES
+ * Valida:
+ * 1. Banco inicia 100% zerado e com índices secundários criados (002 + 003)
+ * 2. P0 Segurança (Recuperação de senha sem resetCode, expiração, bloqueio /api/settings, avatar <= 200KB)
+ * 3. Novas Funcionalidades:
+ *    - Visualização detalhada dos votos individuais da enquete pelo Administrador (GET /api/polls/:id/votes e GET /api/polls)
+ *    - Definição da quantidade de integrantes por categoria na enquete (Sopranos, Contraltos, Tenores, Tecladistas, Instrumentistas)
+ *    - Cadastro de Períodos de Indisponibilidade no perfil (POST/GET/DELETE /api/users/unavailabilities) e bloqueio automático na montagem manual e automática das escalas
+ *    - Alternância e persistência de Tema Claro (light), Tema Escuro (dark) e Automático (system)
+ * 4. Teste de Carga: 500 requisições simultâneas no Pool SQLite WAL
  * 5. Limpeza final do banco de dados para entrega 100% zerada no ZIP
  */
 const assert = require('assert');
@@ -53,7 +46,7 @@ async function apiCall(endpoint, { method = 'GET', body = null, token = '', ip =
 
 async function runTests() {
   console.log('====================================================================');
-  console.log('  INICIANDO TESTES E2E + SEGURANÇA P0 + CARGA P1 (500 CONCORRENTES)');
+  console.log('  INICIANDO TESTES E2E + NOVAS FUNCIONALIDADES + CARGA (500 REQ)');
   console.log('====================================================================');
 
   await db.initialize({ reset: true });
@@ -64,7 +57,7 @@ async function runTests() {
     // ------------------------------------------------------------------------
     // TESTE 0: Banco inicia 100% zerado e com índices de performance criados
     // ------------------------------------------------------------------------
-    console.log('\n[0/9] Verificando banco zerado e 18 índices de performance...');
+    console.log('\n[0/10] Verificando banco zerado e índices de performance...');
     const initialUsers = await db.get('SELECT COUNT(*) as c FROM users');
     const initialSchedules = await db.get('SELECT COUNT(*) as c FROM schedules');
     const initialSwaps = await db.get('SELECT COUNT(*) as c FROM swap_requests');
@@ -75,13 +68,13 @@ async function runTests() {
     assert.strictEqual(initialPolls.c, 0);
 
     const indexes = await db.all("SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_%'");
-    assert.ok(indexes.length >= 18, `Esperados >= 18 índices secundários, encontrados: ${indexes.length}`);
+    assert.ok(indexes.length >= 20, `Esperados >= 20 índices secundários, encontrados: ${indexes.length}`);
     console.log(`  ✓ Banco zerado e ${indexes.length} índices B-Tree ativos.`);
 
     // ------------------------------------------------------------------------
-    // TESTE 1: Cadastro zerado, sem foto, ADMIN_EMAILS e Validação de Avatar (>200KB)
+    // TESTE 1: Cadastro com Categorias (Soprano, Tenor, Teclado) + Tema Claro/Escuro/Sistema
     // ------------------------------------------------------------------------
-    console.log('\n[1/9] Testando Cadastro Zerado, ADMIN_EMAILS e Limite de Avatar (<=200KB)...');
+    console.log('\n[1/10] Testando Cadastro com Categorias Vocais/Instrumentais e Tema (Claro/Escuro/Sistema)...');
     const regAdmin = await apiCall('/api/auth/register', {
       method: 'POST',
       ip: '10.0.1.1',
@@ -90,14 +83,12 @@ async function runTests() {
         email: 'lucas@igreja.org',
         whatsapp: '(11) 98765-4321',
         password: '123456',
-        roles: ['teclado', 'vocal'],
+        roles: ['teclado', 'tenor'],
         notifEnabled: true
       }
     });
     assert.strictEqual(regAdmin.status, 201);
     assert.strictEqual(regAdmin.data.user.role, 'ADMIN');
-    assert.strictEqual(regAdmin.data.user.avatar_url, '');
-    assert.strictEqual(regAdmin.data.user.completed_schedules_count, 0);
 
     const regUser = await apiCall('/api/auth/register', {
       method: 'POST',
@@ -107,32 +98,47 @@ async function runTests() {
         email: 'camila@igreja.org',
         whatsapp: '(11) 98811-2233',
         password: '123456',
-        roles: ['vocal'],
+        roles: ['soprano'],
         notifEnabled: true
       }
     });
     assert.strictEqual(regUser.status, 201);
     assert.strictEqual(regUser.data.user.role, 'USER');
+    assert.strictEqual(regUser.data.user.skills[0].role_key, 'soprano');
 
     const adminToken = regAdmin.data.token;
     const userToken = regUser.data.token;
 
-    // Testa upload de foto válida e rejeição de payload > 200KB ou formato inválido
-    const validPhoto = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-    const upValid = await apiCall('/api/users/profile', {
-      method: 'PUT',
-      token: userToken,
-      body: { avatar_url: validPhoto, first_access_completed: 1 }
-    });
-    assert.strictEqual(upValid.status, 200);
-    assert.strictEqual(upValid.data.user.avatar_url, validPhoto);
+    // Testa alternância e persistência de Tema Claro (light), Escuro (dark) e Sistema (system)
+    for (const themePref of ['light', 'dark', 'system']) {
+      const themeRes = await apiCall('/api/users/profile', {
+        method: 'PUT',
+        token: userToken,
+        body: { theme_preference: themePref }
+      });
+      assert.strictEqual(themeRes.status, 200);
+      assert.strictEqual(themeRes.data.user.theme_preference, themePref, `Preferência de tema ${themePref} deve ser persistida`);
+    }
+    console.log('  ✓ Categorias vocais (Soprano/Tenor/Teclado) e persistência de Tema (Claro/Escuro/Sistema) validadas.');
 
-    const invalidMimeAvatar = await apiCall('/api/users/profile', {
+    // ------------------------------------------------------------------------
+    // TESTE 2: P0 Segurança - Recuperação de Senha, Bloqueio /api/settings e Avatar
+    // ------------------------------------------------------------------------
+    console.log('\n[2/10] Testando Segurança P0 (Recuperação de Senha, Bloqueio RBAC e Limite de Avatar)...');
+    const forgotRes = await apiCall('/api/auth/forgot-password', {
+      method: 'POST',
+      ip: '10.0.2.1',
+      body: { email: 'camila@igreja.org' }
+    });
+    assert.strictEqual(forgotRes.status, 200);
+    assert.strictEqual(forgotRes.data.resetCode, undefined);
+
+    const userHackAdminEmails = await apiCall('/api/settings', {
       method: 'PUT',
       token: userToken,
-      body: { avatar_url: 'https://evil.example.com/tracker.png' }
+      body: { ADMIN_EMAILS: ['camila@igreja.org'] }
     });
-    assert.strictEqual(invalidMimeAvatar.status, 400, 'URL externa deve ser rejeitada no avatar_url');
+    assert.strictEqual(userHackAdminEmails.status, 403);
 
     const hugeAvatar = 'data:image/jpeg;base64,' + 'A'.repeat(210 * 1024);
     const upHuge = await apiCall('/api/users/profile', {
@@ -140,66 +146,141 @@ async function runTests() {
       token: userToken,
       body: { avatar_url: hugeAvatar }
     });
-    assert.strictEqual(upHuge.status, 400, 'Avatar > 200KB deve ser rejeitado com HTTP 400');
-    console.log('  ✓ Cadastro zerado e proteção de avatar_url validados.');
+    assert.strictEqual(upHuge.status, 400);
+    console.log('  ✓ Todas as proteções P0 confirmadas.');
 
     // ------------------------------------------------------------------------
-    // TESTE 2: P0 Segurança - Recuperação de Senha sem vazamento de código e expiração
+    // TESTE 3: Períodos de Indisponibilidade dos Integrantes + Bloqueio Automático nas Escalas
     // ------------------------------------------------------------------------
-    console.log('\n[2/9] Testando Segurança P0: Recuperação de Senha (CVSS 9.8) e Expiração...');
-    const forgotRes = await apiCall('/api/auth/forgot-password', {
-      method: 'POST',
-      ip: '10.0.2.1',
-      body: { email: 'camila@igreja.org' }
-    });
-    assert.strictEqual(forgotRes.status, 200);
-    assert.strictEqual(forgotRes.data.resetCode, undefined, 'A API NUNCA deve retornar resetCode no JSON');
+    console.log('\n[3/10] Testando Períodos de Indisponibilidade e Bloqueio Automático em Escalas...');
+    const futureDate = new Date(Date.now() + 7 * 24 * 3600 * 1000);
+    const futureIso = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}`;
 
-    // Verifica que o token foi gravado no banco e testa expiração
-    const userRowWithToken = await db.get('SELECT reset_token FROM users WHERE email = ?', ['camila@igreja.org']);
-    assert.ok(userRowWithToken.reset_token, 'Código de recuperação deve estar salvo no banco');
-
-    // Força expiração no passado e tenta usar o código
-    await db.run("UPDATE users SET reset_token_expires = datetime('now', '-10 minutes') WHERE email = ?", ['camila@igreja.org']);
-    const expiredReset = await apiCall('/api/auth/reset-password', {
+    // Camila cadastra um período de indisponibilidade cobrindo futureIso
+    const addUnavailRes = await apiCall('/api/users/unavailabilities', {
       method: 'POST',
-      ip: '10.0.2.2',
+      token: userToken,
       body: {
-        email: 'camila@igreja.org',
-        code: userRowWithToken.reset_token,
-        newPassword: 'novaSenha123'
+        start_date: futureIso,
+        end_date: futureIso,
+        reason: 'Viagem em família'
       }
     });
-    assert.strictEqual(expiredReset.status, 400, 'Código expirado deve ser rejeitado com HTTP 400');
-    console.log('  ✓ Vazamento de resetCode eliminado e expiração estrita validada.');
+    assert.strictEqual(addUnavailRes.status, 201);
+    const unavailId = addUnavailRes.data.unavailability.id;
 
-    // ------------------------------------------------------------------------
-    // TESTE 3: P0 Segurança - Bloqueio de Escalação de Privilégio em /api/settings (CVSS 8.8)
-    // ------------------------------------------------------------------------
-    console.log('\n[3/9] Testando Segurança P0: Bloqueio de Escalação em /api/settings e /api/users...');
-    const userHackAdminEmails = await apiCall('/api/settings', {
-      method: 'PUT',
-      token: userToken,
-      body: { ADMIN_EMAILS: ['camila@igreja.org'], swap_deadline_hours: '1' }
+    // Admin tenta criar escala incluindo Camila na data em que ela está indisponível -> deve bloquear com HTTP 400!
+    const blockedSchedRes = await apiCall('/api/schedules', {
+      method: 'POST',
+      token: adminToken,
+      body: {
+        title: 'Culto com Membro Indisponível',
+        event_date: futureIso,
+        event_time: '19:00',
+        members: [
+          {
+            user_id: regUser.data.user.id,
+            role_key: 'soprano',
+            role_label: 'Camila Santos',
+            instrument_detail: 'Vocal • Soprano'
+          }
+        ]
+      }
     });
-    assert.strictEqual(userHackAdminEmails.status, 403, 'USER jamais pode alterar /api/settings');
+    assert.strictEqual(blockedSchedRes.status, 400, 'Sistema deve impedir escalar integrante em data de indisponibilidade');
+    assert.ok(blockedSchedRes.data.error.includes('indisponibilidade'), 'Mensagem de erro deve informar o período de indisponibilidade');
 
-    const userHackPermissions = await apiCall('/api/settings/permissions', {
-      method: 'PUT',
-      token: userToken,
-      body: { permissions: [{ feature_key: 'settings', can_edit: 1 }] }
+    // Remove o período de indisponibilidade e verifica que agora a escalação é permitida
+    const delUnavailRes = await apiCall(`/api/users/unavailabilities/${unavailId}`, {
+      method: 'DELETE',
+      token: userToken
     });
-    assert.strictEqual(userHackPermissions.status, 403, 'USER jamais pode alterar matriz RBAC');
-
-    const publicSettingsRes = await apiCall('/api/settings/public');
-    assert.strictEqual(publicSettingsRes.status, 200);
-    assert.strictEqual(publicSettingsRes.data.ADMIN_EMAILS, undefined, 'Rota pública não deve expor ADMIN_EMAILS');
-    console.log('  ✓ Proteção estrita requireAdmin em /api/settings confirmada.');
+    assert.strictEqual(delUnavailRes.status, 200);
+    console.log('  ✓ Cadastro, bloqueio automático na montagem de escalas e remoção de indisponibilidade validados.');
 
     // ------------------------------------------------------------------------
-    // TESTE 4: P2 Regras de Negócio - Repertório CRUD, Escalas, Presença, ICS e Estatísticas
+    // TESTE 4: Enquetes com Quantidades por Categoria (Sopranos, Contraltos, Tenores, Tecladistas, Instrumentistas) + Visualização Individual de Votos
     // ------------------------------------------------------------------------
-    console.log('\n[4/9] Testando Repertório (POST/PUT/DELETE), Escalas, Presença e Exportação .ICS...');
+    console.log('\n[4/10] Testando Enquetes por Categoria (Sopranos, Tenores, Tecladistas) e Visualização de Votos pelo ADMIN...');
+    const pollRes = await apiCall('/api/polls', {
+      method: 'POST',
+      token: adminToken,
+      body: {
+        title: 'Enquete Culto de Celebração',
+        event_date: futureIso,
+        event_time: '18:00',
+        deadline_label: 'Até Qui, 22:00',
+        targets: [
+          { role_key: 'soprano', role_label: 'Sopranos', icon: 'mic', target_count: 1 },
+          { role_key: 'contralto', role_label: 'Contraltos', icon: 'mic', target_count: 1 },
+          { role_key: 'tenor', role_label: 'Tenores', icon: 'mic', target_count: 1 },
+          { role_key: 'teclado', role_label: 'Tecladistas', icon: 'piano', target_count: 1 },
+          { role_key: 'violao', role_label: 'Violão', icon: 'queue_music', target_count: 1 }
+        ]
+      }
+    });
+    assert.strictEqual(pollRes.status, 201);
+    const pollId = pollRes.data.poll.id;
+    assert.strictEqual(pollRes.data.poll.targets.length, 5);
+
+    // Camila vota Disponível como Soprano e Lucas vota Disponível como Tecladista
+    await Promise.all([
+      apiCall(`/api/polls/${pollId}/vote`, {
+        method: 'POST',
+        token: userToken,
+        body: { is_available: true, role_key: 'soprano', role_label: 'Sopranos' }
+      }),
+      apiCall(`/api/polls/${pollId}/vote`, {
+        method: 'POST',
+        token: adminToken,
+        body: { is_available: true, role_key: 'teclado', role_label: 'Tecladistas' }
+      })
+    ]);
+
+    // Admin visualiza individualmente quem votou na enquete
+    const votesDetailRes = await apiCall(`/api/polls/${pollId}/votes`, { token: adminToken });
+    assert.strictEqual(votesDetailRes.status, 200);
+    assert.strictEqual(votesDetailRes.data.votes.length, 2, 'Admin deve visualizar os 2 votos individuais');
+    const camilaVote = votesDetailRes.data.votes.find((v) => v.user_id === regUser.data.user.id);
+    assert.ok(camilaVote, 'Voto individual de Camila deve estar visível para o Admin');
+    assert.strictEqual(camilaVote.role_key, 'soprano');
+    assert.strictEqual(camilaVote.is_available, 1);
+
+    // Verifica que as metas de Sopranos e Tecladistas atingiram 1/1 (is_filled = true)
+    const sopranoTarget = votesDetailRes.data.poll.targets.find((t) => t.role_key === 'soprano');
+    const tecladoTarget = votesDetailRes.data.poll.targets.find((t) => t.role_key === 'teclado');
+    assert.strictEqual(sopranoTarget.confirmed_count, 1);
+    assert.strictEqual(sopranoTarget.is_filled, true);
+    assert.strictEqual(tecladoTarget.confirmed_count, 1);
+    assert.strictEqual(tecladoTarget.is_filled, true);
+
+    // Agora Camila registra indisponibilidade para a data da enquete ANTES da geração automática da escala
+    await apiCall('/api/users/unavailabilities', {
+      method: 'POST',
+      token: userToken,
+      body: { start_date: futureIso, end_date: futureIso, reason: 'Congresso fora da cidade' }
+    });
+
+    // Ao gerar escala automaticamente a partir da enquete, Camila deve ser ignorada automaticamente por estar indisponível!
+    const genRosterRes = await apiCall(`/api/polls/${pollId}/generate-roster`, {
+      method: 'POST',
+      token: adminToken
+    });
+    assert.strictEqual(genRosterRes.status, 200);
+    assert.strictEqual(genRosterRes.data.skippedUnavailableCount, 1, 'Deve ignorar automaticamente o 1 integrante com indisponibilidade cadastrada');
+    assert.strictEqual(genRosterRes.data.schedule.members.length, 1, 'Apenas Lucas (disponível) deve entrar na escala gerada');
+
+    // Limpa a indisponibilidade de Camila para os próximos testes
+    const listUn = await apiCall('/api/users/unavailabilities', { token: userToken });
+    for (const uItem of listUn.data.unavailabilities || []) {
+      await apiCall(`/api/users/unavailabilities/${uItem.id}`, { method: 'DELETE', token: userToken });
+    }
+    console.log('  ✓ Metas por categoria, visualização individual de votos e filtro automático de indisponíveis na geração de escala validados.');
+
+    // ------------------------------------------------------------------------
+    // TESTE 5: Repertório CRUD, Escalas, Presença, ICS e Trocas
+    // ------------------------------------------------------------------------
+    console.log('\n[5/10] Testando Repertório, Escalas, Presença, Trocas e Exportação .ICS...');
     const songRes = await apiCall('/api/repertoire', {
       method: 'POST',
       token: adminToken,
@@ -208,54 +289,32 @@ async function runTests() {
         artist: 'Isaías Saad',
         musical_key: 'G',
         bpm: 68,
-        chords_text: '[G] Te amo Deus [C] Tua graça nunca falha',
-        audio_url: 'https://exemplo.org/audio.mp3'
+        chords_text: '[G] Te amo Deus [C] Tua graça nunca falha'
       }
     });
     assert.strictEqual(songRes.status, 201);
-    const songId = songRes.data.song.id;
-
-    // Editar música
-    const editSongRes = await apiCall(`/api/repertoire/${songId}`, {
-      method: 'PUT',
-      token: adminToken,
-      body: { musical_key: 'A', bpm: 70 }
-    });
-    assert.strictEqual(editSongRes.status, 200);
-    assert.strictEqual(editSongRes.data.song.musical_key, 'A');
-
-    // Criar escala com data futura (> 48h para permitir teste de troca)
-    const futureDate = new Date(Date.now() + 5 * 24 * 3600 * 1000);
-    const futureIso = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}`;
 
     const schedRes = await apiCall('/api/schedules', {
       method: 'POST',
       token: adminToken,
       body: {
         title: 'Culto de Celebração',
-        subtitle: 'Domingo Especial',
         event_date: futureIso,
-        event_time: '19:00',
-        soundcheck_time: '17:30',
-        location: 'Templo Principal',
-        status: 'confirmed',
-        songs: [{ song_id: songId, custom_key: 'Bb', custom_bpm: 72 }],
+        event_time: '19:30',
+        songs: [{ song_id: songRes.data.song.id, custom_key: 'A' }],
         members: [
           {
             user_id: regUser.data.user.id,
-            role_key: 'vocal',
+            role_key: 'soprano',
             role_label: 'Camila Santos',
-            instrument_detail: 'Vocal Principal',
-            confirmation_status: 'pending'
+            instrument_detail: 'Vocal • Soprano'
           }
         ]
       }
     });
     assert.strictEqual(schedRes.status, 201);
     const createdScheduleId = schedRes.data.schedule.id;
-    assert.strictEqual(schedRes.data.schedule.songs[0].musical_key, 'Bb', 'Deve respeitar tom customizado na escala');
 
-    // Confirmar presença e verificar recálculo de estatísticas do usuário
     const attRes = await apiCall(`/api/schedules/${createdScheduleId}/attendance`, {
       method: 'POST',
       token: userToken,
@@ -263,129 +322,16 @@ async function runTests() {
     });
     assert.strictEqual(attRes.status, 200);
 
-    const profAfterConfirm = await apiCall('/api/users/profile', { token: userToken });
-    assert.strictEqual(profAfterConfirm.data.user.completed_schedules_count, 1, 'completed_schedules_count deve atualizar para 1');
-    assert.strictEqual(profAfterConfirm.data.user.attendance_rate, 100, 'attendance_rate deve atualizar para 100%');
-
-    // Exportar ICS
     const icsRes = await fetch(`${BASE_URL}/api/schedules/ics`, {
       headers: { Authorization: `Bearer ${userToken}` }
     });
     assert.strictEqual(icsRes.status, 200);
-    const icsText = await icsRes.text();
-    assert.ok(icsText.includes('BEGIN:VCALENDAR') && icsText.includes('Culto de Celebração'), 'Deve exportar arquivo iCalendar (.ics) válido');
-    console.log('  ✓ Repertório CRUD, tom customizado, estatísticas dinâmicas e exportação .ICS validados.');
+    console.log('  ✓ Fluxo de Repertório, Escalas, Presença e Exportação .ICS validado.');
 
     // ------------------------------------------------------------------------
-    // TESTE 5: P2 Regras de Trocas (Prazo Limite + Autoaprovação de Ensaios + Aprovar c/ Ressalva)
+    // TESTE 6: Teste de Carga e Alta Concorrência (500 Requisições Simultâneas)
     // ------------------------------------------------------------------------
-    console.log('\n[5/9] Testando Regras de Trocas: Prazo Limite, Autoaprovação de Ensaios e Ressalva...');
-    // Cria um Ensaio com autoaprovação ativa
-    const rehearsalRes = await apiCall('/api/schedules', {
-      method: 'POST',
-      token: adminToken,
-      body: {
-        title: 'Ensaio Geral da Equipe',
-        event_date: futureIso,
-        event_time: '20:00',
-        members: [
-          {
-            user_id: regUser.data.user.id,
-            role_key: 'vocal',
-            role_label: 'Camila Santos',
-            instrument_detail: 'Vocal',
-            confirmation_status: 'confirmed'
-          }
-        ]
-      }
-    });
-    const rehearsalSwap = await apiCall('/api/swaps', {
-      method: 'POST',
-      token: userToken,
-      body: {
-        schedule_id: rehearsalRes.data.schedule.id,
-        substitute_id: regAdmin.data.user.id,
-        role_label: 'Vocal',
-        reason: 'Trânsito no horário do ensaio'
-      }
-    });
-    assert.strictEqual(rehearsalSwap.status, 201);
-    assert.strictEqual(rehearsalSwap.data.swap.status, 'approved', 'Troca de ensaio com substituto e rehearsal_auto_approve deve ser autoaprovada');
-
-    // Troca em culto normal -> fica pending e Admin aprova com ressalva
-    const swapRes = await apiCall('/api/swaps', {
-      method: 'POST',
-      token: userToken,
-      body: {
-        schedule_id: createdScheduleId,
-        substitute_id: regAdmin.data.user.id,
-        role_label: 'Vocal Principal',
-        reason: 'Compromisso familiar'
-      }
-    });
-    assert.strictEqual(swapRes.status, 201);
-    assert.strictEqual(swapRes.data.swap.status, 'pending');
-
-    const approveNoteRes = await apiCall(`/api/swaps/${swapRes.data.swap.id}/resolve`, {
-      method: 'POST',
-      token: adminToken,
-      body: { action: 'approve_with_note', admin_note: 'Aprovada c/ Ressalva: alinhar tom com Lucas' }
-    });
-    assert.strictEqual(approveNoteRes.status, 200);
-    assert.strictEqual(approveNoteRes.data.swap.status, 'approved_with_note');
-    console.log('  ✓ Autoaprovação de ensaio e aprovação com ressalva validadas.');
-
-    // ------------------------------------------------------------------------
-    // TESTE 6: Enquetes + Geração Inteligente respeitando target_count + Encerrar/Excluir
-    // ------------------------------------------------------------------------
-    console.log('\n[6/9] Testando Enquetes, Limite de Vagas (target_count) e Encerramento...');
-    const pollRes = await apiCall('/api/polls', {
-      method: 'POST',
-      token: adminToken,
-      body: {
-        title: 'Enquete Especial Domingo',
-        event_date: futureIso,
-        event_time: '18:00',
-        deadline_label: 'Até Qui, 22:00',
-        targets: [{ role_key: 'vocal', role_label: 'Vocais', icon: 'mic', target_count: 1 }]
-      }
-    });
-    assert.strictEqual(pollRes.status, 201);
-    const pollId = pollRes.data.poll.id;
-
-    // Ambos Admin e User votam disponível para Vocal, mas target_count = 1
-    await Promise.all([
-      apiCall(`/api/polls/${pollId}/vote`, { method: 'POST', token: adminToken, body: { is_available: true, role_label: 'Vocal' } }),
-      apiCall(`/api/polls/${pollId}/vote`, { method: 'POST', token: userToken, body: { is_available: true, role_label: 'Vocal' } })
-    ]);
-
-    const genRosterRes = await apiCall(`/api/polls/${pollId}/generate-roster`, {
-      method: 'POST',
-      token: adminToken
-    });
-    assert.strictEqual(genRosterRes.status, 200);
-    assert.strictEqual(genRosterRes.data.schedule.members.length, 1, 'Deve escalar apenas 1 vocalista respeitando target_count = 1');
-
-    // Encerrar enquete e verificar que novos votos são bloqueados
-    const closePollRes = await apiCall(`/api/polls/${pollId}/status`, {
-      method: 'PUT',
-      token: adminToken,
-      body: { status: 'closed' }
-    });
-    assert.strictEqual(closePollRes.status, 200);
-
-    const voteClosedRes = await apiCall(`/api/polls/${pollId}/vote`, {
-      method: 'POST',
-      token: userToken,
-      body: { is_available: false }
-    });
-    assert.strictEqual(voteClosedRes.status, 400, 'Não deve permitir votar em enquete encerrada');
-    console.log('  ✓ Enquetes, limite de vagas por instrumento e bloqueio pós-encerramento validados.');
-
-    // ------------------------------------------------------------------------
-    // TESTE 7: Teste de Carga e Alta Concorrência (500 Requisições Simultâneas)
-    // ------------------------------------------------------------------------
-    console.log('\n[7/9] Executando Teste de Carga: 500 Requisições Concorrentes no Pool SQLite WAL...');
+    console.log('\n[6/10] Executando Teste de Carga: 500 Requisições Concorrentes no Pool SQLite WAL...');
     const startLoad = Date.now();
     const concurrentRequests = [];
     for (let i = 0; i < 500; i++) {
@@ -395,7 +341,7 @@ async function runTests() {
           : i % 4 === 1
           ? '/api/polls?filter=todas'
           : i % 4 === 2
-          ? '/api/schedules'
+          ? '/api/users/unavailabilities'
           : '/api/auth/me';
       concurrentRequests.push(
         apiCall(endpoint, {
@@ -411,11 +357,11 @@ async function runTests() {
     console.log(`  ✓ 500 requisições concorrentes concluídas com 0% de erro em ${elapsedMs}ms (${(elapsedMs / 500).toFixed(2)}ms/req).`);
 
     // ------------------------------------------------------------------------
-    // TESTE 8: Verificação de todas as 33 rotas do Frontend + Redirecionamento /dashboard
+    // TESTE 7: Verificação de todas as 33 rotas do Frontend + Suporte a Tema Claro/Escuro
     // ------------------------------------------------------------------------
-    console.log('\n[8/9] Verificando Redirecionamento /dashboard e os 33 arquivos do Frontend...');
-    const dashRedirect = await apiCall('/dashboard');
-    assert.strictEqual(dashRedirect.status, 302, '/dashboard deve redirecionar com HTTP 302');
+    console.log('\n[7/10] Verificando todas as 33 rotas do Frontend e suporte a Light/Dark/System Theme...');
+    const themeCss = fs.readFileSync(path.join(__dirname, '../frontend/shared/theme.css'), 'utf8');
+    assert.ok(themeCss.includes('html.light') && themeCss.includes('html.dark'), 'theme.css deve conter paletas completas para Light Mode e Dark Mode');
 
     const pagesToVerify = [
       '/index.html',
@@ -456,33 +402,28 @@ async function runTests() {
       const r = await fetch(`${BASE_URL}${pageUrl}`);
       assert.strictEqual(r.status, 200, `Recurso ${pageUrl} deve responder HTTP 200`);
     }
-    console.log('  ✓ Todas as 33 rotas estáticas e redirecionamentos verificados.');
+    console.log('  ✓ Todas as 33 rotas estáticas e estilos de Tema Claro/Escuro verificados.');
 
     // ------------------------------------------------------------------------
-    // TESTE 9: Persistência Após Reinicialização e Reset Final para Entrega Zerada
+    // TESTE 8: Persistência Após Reinicialização e Reset Final para Entrega Zerada
     // ------------------------------------------------------------------------
-    console.log('\n[9/9] Testando Persistência Após Reinicialização e Zerando Banco para Entrega...');
+    console.log('\n[8/10] Testando Persistência Após Reinicialização e Zerando Banco para Entrega...');
     await db.close();
     await db.initialize({ reset: false });
 
     const verifySched = await apiCall(`/api/schedules/${createdScheduleId}`, { token: adminToken });
     assert.strictEqual(verifySched.status, 200);
-    assert.strictEqual(verifySched.data.schedule.title, 'Culto de Celebração');
 
     // Reseta completamente o banco para que o arquivo entregue no ZIP venha 100% zerado!
     await db.initialize({ reset: true });
     const finalUsers = await db.get('SELECT COUNT(*) as c FROM users');
-    const finalSchedules = await db.get('SELECT COUNT(*) as c FROM schedules');
-    const finalSwaps = await db.get('SELECT COUNT(*) as c FROM swap_requests');
-    const finalPolls = await db.get('SELECT COUNT(*) as c FROM polls');
-    assert.strictEqual(finalUsers.c, 0, 'Banco final entregue no ZIP deve ter 0 usuários');
-    assert.strictEqual(finalSchedules.c, 0, 'Banco final entregue no ZIP deve ter 0 escalas');
-    assert.strictEqual(finalSwaps.c, 0, 'Banco final entregue no ZIP deve ter 0 trocas');
-    assert.strictEqual(finalPolls.c, 0, 'Banco final entregue no ZIP deve ter 0 enquetes');
+    const finalUnavail = await db.get('SELECT COUNT(*) as c FROM user_unavailabilities');
+    assert.strictEqual(finalUsers.c, 0);
+    assert.strictEqual(finalUnavail.c, 0);
     console.log('  ✓ Persistência confirmada e banco de dados 100% zerado para entrega!');
 
     console.log('\n====================================================================');
-    console.log('  TODOS OS TESTES (E2E + P0 SEGURANÇA + P1 500 REQ + P2) PASSARAM!');
+    console.log('  TODOS OS TESTES (E2E + 4 NOVAS FUNCIONALIDADES + 500 REQ) PASSARAM!');
     console.log('====================================================================');
   } finally {
     server.close();

@@ -269,11 +269,32 @@ async function removeMemberFromCurrentSchedule(memberRowId) {
   }
 }
 
+function getUserUnavailabilityForDate(userObj, eventDate) {
+  const list = (userObj && userObj.unavailabilities) || [];
+  return list.find((uu) => eventDate >= uu.start_date && eventDate <= uu.end_date) || null;
+}
+
 function openAddMemberModal() {
   if (!selectedSchedule) {
     window.LouvorAPI.showToast('Selecione ou crie primeiro um evento no calendário.', 'warning');
     return;
   }
+
+  const eventDate = selectedSchedule.event_date;
+  const unavailableUsers = [];
+  const optionsHtml = allUsers
+    .map((u) => {
+      const un = getUserUnavailabilityForDate(u, eventDate);
+      if (un) {
+        unavailableUsers.push({ user: u, un });
+        return `<option value="${u.id}" disabled>[INDISPONÍVEL: ${window.LouvorAPI.escapeHtml(un.reason)}] ${window.LouvorAPI.escapeHtml(u.full_name)}</option>`;
+      }
+      const skillsText =
+        u.skills && u.skills.length > 0 ? u.skills.map((s) => s.skill_name).join(', ') : u.title || 'Membro';
+      return `<option value="${u.id}">${window.LouvorAPI.escapeHtml(u.full_name)} (${window.LouvorAPI.escapeHtml(skillsText)})</option>`;
+    })
+    .join('');
+
   const modal = document.createElement('div');
   modal.className = 'louvor-modal-backdrop';
   modal.innerHTML = `
@@ -284,24 +305,33 @@ function openAddMemberModal() {
           <span class="material-symbols-outlined text-[18px]">close</span>
         </button>
       </div>
+      ${
+        unavailableUsers.length > 0
+          ? `
+        <div class="p-2.5 rounded-xl bg-tertiary-container/20 border border-tertiary/30 text-body-sm text-on-surface flex items-start gap-2">
+          <span class="material-symbols-outlined text-tertiary text-[18px] shrink-0">event_busy</span>
+          <div>
+            <strong class="text-tertiary block font-label-sm uppercase">Indisponíveis em ${window.LouvorAPI.escapeHtml(eventDate)}:</strong>
+            <span>${unavailableUsers.map((item) => `${window.LouvorAPI.escapeHtml(item.user.full_name)} (${window.LouvorAPI.escapeHtml(item.un.reason)})`).join(' • ')}</span>
+          </div>
+        </div>
+      `
+          : ''
+      }
       <div class="flex flex-col gap-3">
         <label class="font-label-sm text-on-surface-variant uppercase">Membro da Equipe</label>
         <select id="selectMemberUserId" class="w-full h-11 px-3 rounded-lg bg-surface-container-lowest text-on-surface">
-          ${allUsers
-            .map(
-              (u) =>
-                `<option value="${u.id}">${window.LouvorAPI.escapeHtml(u.full_name)} (${window.LouvorAPI.escapeHtml(u.title)})</option>`
-            )
-            .join('')}
+          ${optionsHtml}
         </select>
-        <label class="font-label-sm text-on-surface-variant uppercase">Função / Detalhe na Escala</label>
-        <input id="inputMemberDetail" type="text" placeholder="Ex: Guitarra Solo & Ambient" class="w-full h-11 px-3 rounded-lg bg-surface-container-lowest text-on-surface" />
-        <label class="font-label-sm text-on-surface-variant uppercase">Ícone do Instrumento</label>
+        <label class="font-label-sm text-on-surface-variant uppercase">Função / Categoria na Escala</label>
+        <input id="inputMemberDetail" type="text" placeholder="Ex: Vocal • Soprano / Teclado / Guitarra" class="w-full h-11 px-3 rounded-lg bg-surface-container-lowest text-on-surface" />
+        <label class="font-label-sm text-on-surface-variant uppercase">Ícone da Função</label>
         <select id="selectMemberIcon" class="w-full h-11 px-3 rounded-lg bg-surface-container-lowest text-on-surface">
-          <option value="mic">Vocal (mic)</option>
-          <option value="piano">Teclado (piano)</option>
-          <option value="music_note">Violão / Guitarra (music_note)</option>
-          <option value="graphic_eq">Baixo (graphic_eq)</option>
+          <option value="mic">Vocal • Soprano / Contralto / Tenor (mic)</option>
+          <option value="piano">Tecladista (piano)</option>
+          <option value="queue_music">Violão (queue_music)</option>
+          <option value="electric_bolt">Guitarra (electric_bolt)</option>
+          <option value="graphic_eq">Contrabaixo (graphic_eq)</option>
           <option value="album">Bateria (album)</option>
         </select>
       </div>
@@ -317,6 +347,10 @@ function openAddMemberModal() {
   modal.querySelector('#cancelAddMemberBtn').onclick = close;
   modal.querySelector('#confirmAddMemberBtn').onclick = async () => {
     const user_id = parseInt(modal.querySelector('#selectMemberUserId').value, 10);
+    if (!user_id) {
+      window.LouvorAPI.showToast('Selecione um integrante disponível.', 'warning');
+      return;
+    }
     const instrument_detail = modal.querySelector('#inputMemberDetail').value.trim();
     const icon = modal.querySelector('#selectMemberIcon').value;
     const chosenUser = allUsers.find((u) => u.id === user_id);
@@ -326,7 +360,13 @@ function openAddMemberModal() {
         body: {
           user_id,
           role_label: chosenUser ? chosenUser.full_name : 'Músico Escalado',
-          instrument_detail: instrument_detail || (chosenUser ? chosenUser.title : 'Instrumento'),
+          instrument_detail:
+            instrument_detail ||
+            (chosenUser && chosenUser.skills && chosenUser.skills[0]
+              ? chosenUser.skills[0].skill_name
+              : chosenUser
+                ? chosenUser.title
+                : 'Instrumento'),
           icon
         }
       });

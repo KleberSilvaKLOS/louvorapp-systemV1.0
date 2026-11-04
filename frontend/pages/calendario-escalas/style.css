@@ -1,4 +1,5 @@
 /* Estilos da tela Calendário & Escalas */
 body {
-  background-color: #0f131c;
+  background-color: var(--surface);
+  color: var(--on-surface);
 }

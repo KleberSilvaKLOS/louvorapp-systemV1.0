@@ -1,4 +1,6 @@
-/* Estilos da tela de Onboarding / Cadastro de Membro */
+/* Estilos da tela Onboarding & Cadastro */
 body {
-  background-color: #0f131c;
+  min-height: max(884px, 100dvh);
+  background-color: var(--surface);
+  color: var(--on-surface);
 }
