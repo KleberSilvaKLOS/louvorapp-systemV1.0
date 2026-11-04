@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html class="dark" lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+  <title>LouvorApp • Permissões Granulares, ADMIN_EMAILS &amp; Auditoria</title>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/shared/api.js"></script>
+  <link href="/shared/theme.css" rel="stylesheet"/>
+  <link href="/pages/configuracoes/style.css" rel="stylesheet"/>
+</head>
+<body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen">
+  <header class="fixed top-0 inset-x-0 z-50 bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.4)] pt-safe">
+    <div class="h-16 px-margin flex items-center justify-between max-w-4xl mx-auto">
+      <div class="flex items-center gap-space-sm">
+        <img alt="LouvorApp Logo" class="h-8 w-auto object-contain" src="/assets/images/logo-louvorapp.svg"/>
+        <div class="flex flex-col">
+          <span class="font-headline-sm text-headline-sm font-bold tracking-tight text-on-surface leading-none">Configurações &amp; Permissões</span>
+          <span class="font-label-sm text-label-sm text-primary tracking-wider uppercase font-semibold leading-none mt-1">ADMIN_EMAILS • Matriz RBAC • Auditoria</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a class="px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-label-sm hover:bg-surface-bright" href="/pages/usuarios/index.html">Usuários</a>
+        <button aria-label="Notificações" class="relative flex items-center justify-center w-10 h-10 rounded-full text-on-surface-variant hover:text-on-surface transition-colors">
+          <span class="material-symbols-outlined text-[22px]">notifications</span>
+          <span class="hidden absolute top-2 right-2 w-2 h-2 rounded-full bg-secondary" data-notif-badge=""></span>
+        </button>
+        <a class="relative flex items-center justify-center p-1" href="/pages/perfil-configuracoes/index.html">
+          <img alt="Profile" class="hidden w-8 h-8 rounded-full object-cover ring-2 ring-surface-variant" data-user-avatar="" src=""/>
+          <span class="absolute -bottom-1 -right-0.5 px-1 py-0.2 bg-secondary text-on-secondary font-label-sm text-[9px] font-bold rounded-full uppercase tracking-tighter scale-90" data-user-role-badge="">ADMIN</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex flex-col relative w-full px-margin pt-16 pb-24 bg-surface min-h-screen">
+    <div class="flex flex-col w-full app-shell-container app-shell-wide space-y-6 pt-3">
+      <!-- 1. Lista Protegida ADMIN_EMAILS -->
+      <section class="p-4 rounded-2xl bg-surface-container-low space-y-3 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-secondary">verified_user</span>
+            <h2 class="font-headline-sm text-on-surface">E-mails Autorizados para ADMIN (ADMIN_EMAILS)</h2>
+          </div>
+          <span class="px-2 py-0.5 rounded-full bg-secondary/20 text-secondary font-label-sm uppercase">Protegido no Backend</span>
+        </div>
+        <p class="font-body-sm text-on-surface-variant">
+          Usuários que realizarem o cadastro com qualquer um dos e-mails abaixo recebem automaticamente o perfil <strong>ADMIN</strong>. Os demais cadastros são classificados como <strong>USER</strong>.
+        </p>
+        <div class="flex flex-wrap gap-2" id="adminEmailsChips"></div>
+        <div class="flex gap-2 pt-1">
+          <input class="flex-1 h-11 px-3.5 rounded-xl bg-surface-container-lowest text-on-surface font-body-sm outline-none focus:ring-1 focus:ring-primary" id="newAdminEmailInput" placeholder="Adicionar novo e-mail autorizado (ex: admin3@email.com)" type="email"/>
+          <button class="px-4 h-11 rounded-xl bg-secondary text-on-secondary font-label-md font-bold" id="btnAddAdminEmail" type="button">Adicionar</button>
+        </div>
+      </section>
+
+      <!-- 2. Matriz de Permissões Granulares por Funcionalidade -->
+      <section class="p-4 rounded-2xl bg-surface-container-low space-y-3 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">rule</span>
+            <h2 class="font-headline-sm text-on-surface">Permissões do Perfil USER por Funcionalidade</h2>
+          </div>
+          <span class="font-label-sm text-on-surface-variant">Validação Obrigatória no Backend</span>
+        </div>
+        <p class="font-body-sm text-on-surface-variant">
+          Defina individualmente o que o perfil <strong>USER</strong> pode visualizar, cadastrar, editar, excluir ou aprovar em cada módulo do sistema:
+        </p>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-outline-variant/30 text-on-surface-variant font-label-sm uppercase">
+                <th class="py-2.5 pr-3">Módulo / Funcionalidade</th>
+                <th class="py-2.5 px-2 text-center">Visualizar</th>
+                <th class="py-2.5 px-2 text-center">Cadastrar</th>
+                <th class="py-2.5 px-2 text-center">Editar</th>
+                <th class="py-2.5 px-2 text-center">Excluir</th>
+                <th class="py-2.5 px-2 text-center">Aprovar</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-outline-variant/20 font-body-sm" id="permissionsMatrixBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 3. Logs de Auditoria Administrativa -->
+      <section class="p-4 rounded-2xl bg-surface-container-low space-y-3 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-tertiary">history_edu</span>
+            <h2 class="font-headline-sm text-on-surface">Registro de Ações Administrativas (Audit Log)</h2>
+          </div>
+          <span class="font-label-sm text-on-surface-variant" id="auditCountBadge">Últimos eventos</span>
+        </div>
+        <div class="flex flex-col gap-2 max-h-80 overflow-y-auto" id="auditLogsContainer"></div>
+      </section>
+    </div>
+  </main>
+
+  <nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.5)]"></nav>
+
+  <script src="/components/navigation.js"></script>
+  <script src="/pages/configuracoes/script.js"></script>
+</body>
+</html>

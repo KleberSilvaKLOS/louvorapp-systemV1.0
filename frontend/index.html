@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html class="dark" lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+  <title>LouvorApp • Login &amp; Acesso ao Sistema</title>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/shared/api.js"></script>
+  <link href="/shared/theme.css" rel="stylesheet"/>
+  <link href="/style.css" rel="stylesheet"/>
+</head>
+<body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen selection:bg-primary-container selection:text-on-primary-container pt-safe pb-safe">
+  <main class="flex flex-col items-center justify-center relative w-full bg-surface min-h-screen px-margin py-space-xl">
+    <div class="flex flex-col w-full max-w-md space-y-space-lg">
+      <!-- Brand Header & Mascot Welcome -->
+      <div class="flex flex-col items-center text-center">
+        <div class="relative flex items-center justify-center w-24 h-24 rounded-full bg-surface-container shadow-xl mb-3 overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-tr from-primary/10 via-transparent to-secondary/15"></div>
+          <img alt="Logotipo LouvorApp" class="w-16 h-16 object-contain relative z-10 drop-shadow-md" onerror="this.src='/assets/images/logo-louvorapp.svg'" src="https://lh3.googleusercontent.com/aida/AEtjO1XhuUUeOsaYUHEp6iTz0s6I47oSmoMlZVVQIRKKfEQ6DGiUDPCSouogn9tHfj5Rh7kbrvyrfC7rgsqcHCqtk62heVYaP2rlOtxyJrHPuWtYhYdqA2ORFrATdYNlqsZXJjhBCrFKxLPLuj0Ip-PV-cBYe7RiTdOnkFhgbbD9K_Bj9DuaVDIqidUGguiYpmdX6t-kQunqVJlr_kDSeLCoq4i6mlLKeSvfWmrCeNbtpcM"/>
+          <span class="absolute bottom-2 right-2 w-3.5 h-3.5 rounded-full bg-secondary ring-4 ring-surface-container"></span>
+        </div>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary-container/20 text-secondary font-label-sm text-label-sm uppercase tracking-wider mb-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+          Equipe de Louvor
+        </span>
+        <h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface tracking-tight">
+          Entrar no LouvorApp
+        </h1>
+        <p class="font-body-md text-body-md text-on-surface-variant max-w-xs mt-1">
+          Acesse escalas, repertórios, enquetes de disponibilidade e substituições.
+        </p>
+      </div>
+
+      <!-- Login Card (Sem botões de seleção de perfil; o backend identifica o nível de acesso pelo e-mail) -->
+      <form class="flex flex-col p-space-md rounded-xl bg-surface-container-low shadow-lg space-y-space-md" id="loginForm">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-headline-sm">lock</span>
+            <span class="font-headline-sm text-headline-sm text-on-surface">Credenciais de Acesso</span>
+          </div>
+          <span class="px-2 py-0.5 rounded-full bg-surface-container text-secondary font-label-sm text-label-sm">Sessão Segura</span>
+        </div>
+
+        <div class="flex flex-col space-y-1.5">
+          <label class="font-label-md text-label-md text-on-surface-variant" for="loginEmail">E-mail Cadastrado</label>
+          <div class="relative flex items-center">
+            <span class="material-symbols-outlined absolute left-3.5 text-outline text-headline-sm pointer-events-none">mail</span>
+            <input class="w-full h-12 pl-11 pr-4 rounded-lg bg-surface-container-lowest text-on-surface font-body-md text-body-md placeholder:text-outline-variant outline-none focus:bg-surface-container focus:ring-1 focus:ring-primary transition-all duration-150" id="loginEmail" name="email" placeholder="seuemail@igreja.org" required="" type="email"/>
+          </div>
+        </div>
+
+        <div class="flex flex-col space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="font-label-md text-label-md text-on-surface-variant" for="loginPassword">Senha</label>
+            <button class="font-label-sm text-label-sm text-primary hover:underline" id="forgotPassBtn" type="button">Esqueci minha senha</button>
+          </div>
+          <div class="relative flex items-center">
+            <span class="material-symbols-outlined absolute left-3.5 text-outline text-headline-sm pointer-events-none">key</span>
+            <input class="w-full h-12 pl-11 pr-11 rounded-lg bg-surface-container-lowest text-on-surface font-body-md text-body-md placeholder:text-outline-variant outline-none focus:bg-surface-container focus:ring-1 focus:ring-primary transition-all duration-150" id="loginPassword" name="password" placeholder="••••••••" required="" type="password"/>
+            <button aria-label="Mostrar senha" class="absolute right-3 text-outline hover:text-on-surface" id="togglePassBtn" type="button">
+              <span class="material-symbols-outlined text-[20px]">visibility</span>
+            </button>
+          </div>
+        </div>
+
+        <button class="group relative flex items-center justify-center w-full h-14 rounded-xl bg-gradient-to-r from-primary-container via-primary-container to-secondary-container text-white font-headline-sm text-headline-sm shadow-lg shadow-primary-container/20 hover:shadow-primary-container/40 active:scale-[0.98] transition-all duration-150" id="loginSubmitBtn" type="submit">
+          <span class="flex items-center gap-2">
+            <span>Entrar no Sistema</span>
+            <span class="material-symbols-outlined text-headline-md group-hover:translate-x-1 transition-transform">arrow_forward</span>
+          </span>
+        </button>
+      </form>
+
+      <!-- Link para Onboarding / Cadastro de Membro -->
+      <div class="flex flex-col items-center justify-center p-space-md rounded-xl bg-surface-container-low text-center space-y-2">
+        <span class="font-body-sm text-body-sm text-on-surface-variant">Ainda não possui cadastro no ministério?</span>
+        <a class="w-full h-11 rounded-xl bg-surface-container-high hover:bg-surface-bright text-on-surface font-label-lg text-label-lg flex items-center justify-center gap-2 transition-all active:scale-95" href="/pages/onboarding/index.html">
+          <span class="material-symbols-outlined text-secondary text-[20px]">person_add</span>
+          <span>Realizar Cadastro Oficial de Membro</span>
+        </a>
+      </div>
+
+      <!-- Trust & Privacy Footer -->
+      <div class="flex flex-col items-center justify-center text-center space-y-1 pt-space-xs text-on-surface-variant">
+        <div class="flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-body-sm text-secondary">verified_user</span>
+          <span class="font-label-md text-label-md text-on-surface">Ministério de Louvor &amp; Adoração</span>
+        </div>
+        <p class="font-body-sm text-body-sm text-outline">
+          Seus dados estão protegidos e serão utilizados unicamente para escalas de cultos.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal de Recuperação de Senha -->
+  <div class="louvor-modal-backdrop hidden" id="resetPasswordModal">
+    <div class="louvor-modal-card flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">lock_reset</span>
+          <h3 class="font-headline-sm text-headline-sm text-on-surface">Recuperação de Senha</h3>
+        </div>
+        <button class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant" id="closeResetModalBtn" type="button">
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+
+      <div class="flex flex-col gap-3" id="stepRequestCode">
+        <p class="font-body-sm text-body-sm text-on-surface-variant">
+          Informe o e-mail cadastrado para gerar seu código de verificação e redefinir sua senha.
+        </p>
+        <input class="w-full h-11 px-3.5 rounded-lg bg-surface-container-lowest text-on-surface font-body-md outline-none focus:ring-1 focus:ring-primary" id="resetEmailInput" placeholder="seuemail@igreja.org" type="email"/>
+        <button class="h-11 rounded-xl bg-primary-container text-on-primary-container font-label-lg font-bold" id="sendResetCodeBtn" type="button">
+          Gerar Código de Recuperação
+        </button>
+      </div>
+
+      <div class="flex flex-col gap-3 hidden" id="stepConfirmReset">
+        <div class="p-3 rounded-xl bg-secondary-container/20 text-secondary font-body-sm" id="generatedCodeHint"></div>
+        <input class="w-full h-11 px-3.5 rounded-lg bg-surface-container-lowest text-on-surface font-body-md outline-none focus:ring-1 focus:ring-primary" id="resetCodeInput" placeholder="Código de 6 dígitos" type="text"/>
+        <input class="w-full h-11 px-3.5 rounded-lg bg-surface-container-lowest text-on-surface font-body-md outline-none focus:ring-1 focus:ring-primary" id="resetNewPasswordInput" placeholder="Nova senha (mín. 6 caracteres)" type="password"/>
+        <button class="h-11 rounded-xl bg-secondary text-on-secondary font-label-lg font-bold" id="confirmNewPasswordBtn" type="button">
+          Redefinir Senha Agora
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/script.js"></script>
+</body>
+</html>

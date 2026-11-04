@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html class="dark" lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+  <meta content="mobile_tab" name="shell-type"/>
+  <title>LouvorApp • Perfil &amp; Configurações</title>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/shared/api.js"></script>
+  <link href="/shared/theme.css" rel="stylesheet"/>
+  <link href="/pages/perfil-configuracoes/style.css" rel="stylesheet"/>
+</head>
+<body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen selection:bg-primary-container selection:text-on-primary-container">
+  <header class="fixed top-0 inset-x-0 z-50 bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.4)] pt-safe">
+    <div class="h-16 px-margin flex items-center justify-between max-w-4xl mx-auto">
+      <div class="flex items-center gap-space-sm">
+        <img alt="LouvorApp Logo" class="h-8 w-auto object-contain" onerror="this.src='/assets/images/logo-louvorapp.svg'" src="https://lh3.googleusercontent.com/aida/AEtjO1XhuUUeOsaYUHEp6iTz0s6I47oSmoMlZVVQIRKKfEQ6DGiUDPCSouogn9tHfj5Rh7kbrvyrfC7rgsqcHCqtk62heVYaP2rlOtxyJrHPuWtYhYdqA2ORFrATdYNlqsZXJjhBCrFKxLPLuj0Ip-PV-cBYe7RiTdOnkFhgbbD9K_Bj9DuaVDIqidUGguiYpmdX6t-kQunqVJlr_kDSeLCoq4i6mlLKeSvfWmrCeNbtpcM"/>
+        <div class="flex flex-col">
+          <span class="font-headline-sm text-headline-sm font-bold tracking-tight text-on-surface leading-none">LouvorApp</span>
+          <span class="font-label-sm text-label-sm text-primary tracking-wider uppercase font-semibold leading-none mt-1">Perfil / Configurações</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-space-xs">
+        <button aria-label="Notificações" class="relative flex items-center justify-center w-11 h-11 rounded-full text-on-surface-variant hover:text-on-surface transition-colors active:scale-95">
+          <span class="material-symbols-outlined text-[24px]">notifications</span>
+          <span class="hidden absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-secondary shadow-[0_0_8px_#4edea3]" data-notif-badge=""></span>
+        </button>
+        <div class="relative flex items-center justify-center p-1">
+          <img alt="Profile" class="hidden w-8 h-8 rounded-full object-cover ring-2 ring-surface-variant" data-user-avatar="" src=""/>
+          <span class="absolute -bottom-1 -right-0.5 px-1 py-0.2 bg-secondary text-on-secondary font-label-sm text-[9px] font-bold rounded-full shadow-[0_0_6px_rgba(78,222,163,0.5)] uppercase tracking-tighter scale-90" data-user-role-badge="">Membro</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex flex-col relative w-full px-margin pt-16 pb-24 bg-surface min-h-screen">
+    <div class="flex flex-col w-full app-shell-container pb-8 space-y-6 pt-2">
+      <!-- Feedback Toast Container -->
+      <div class="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-space-sm px-4 py-2.5 rounded-full bg-surface-container-highest/95 backdrop-blur-md text-on-surface shadow-xl opacity-0 pointer-events-none transition-all duration-300 transform -translate-y-2" id="toastNotification">
+        <span class="material-symbols-outlined text-[20px] text-secondary">check_circle</span>
+        <span class="font-label-md text-label-md" id="toastMessage">Configuração salva!</span>
+      </div>
+
+      <!-- Input Oculto para Upload de Foto de Perfil -->
+      <input accept="image/*" class="hidden" id="avatarFileInput" type="file"/>
+
+      <!-- 1. Perfil Hero (Inicia sem foto no cadastro e permite enviar/alterar foto ao clicar) -->
+      <div class="relative w-full rounded-2xl bg-surface-container-low p-space-md shadow-md overflow-hidden">
+        <div class="absolute -top-12 -right-12 w-44 h-44 rounded-full bg-primary-container/10 blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-10 -left-10 w-36 h-36 rounded-full bg-secondary-container/10 blur-2xl pointer-events-none"></div>
+        <div class="relative flex items-start justify-between gap-space-md">
+          <div class="flex items-center gap-space-md min-w-0">
+            <!-- Avatar Wrapper Clicável para Alterar Foto -->
+            <button aria-label="Alterar Foto de Perfil" class="relative shrink-0 group focus:outline-none" id="btnTriggerAvatarUpload" title="Clique para enviar ou alterar sua foto de perfil" type="button">
+              <div class="w-20 h-20 rounded-full p-0.5 bg-gradient-to-tr from-primary via-surface-variant to-secondary shadow-lg overflow-hidden">
+                <!-- Placeholder Sem Foto (padrão no cadastro) -->
+                <div class="w-full h-full rounded-full bg-surface-container flex flex-col items-center justify-center text-on-surface-variant group-hover:text-primary transition-colors" id="profileHeroEmptyAvatar">
+                  <span class="material-symbols-outlined text-[30px]">add_a_photo</span>
+                  <span class="font-label-sm text-[9px] uppercase mt-0.5">Foto</span>
+                </div>
+                <!-- Imagem Real quando enviada pelo usuário -->
+                <img alt="Foto de Perfil" class="hidden w-full h-full object-cover rounded-full bg-surface-container" id="profileHeroAvatar" src=""/>
+              </div>
+              <span class="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary-container text-on-primary-container ring-2 ring-surface-container-low flex items-center justify-center shadow-md">
+                <span class="material-symbols-outlined text-[15px]">photo_camera</span>
+              </span>
+            </button>
+
+            <!-- Info & Badges -->
+            <div class="flex flex-col min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="px-2 py-0.5 rounded-full bg-secondary-container/20 text-secondary font-label-sm text-label-sm uppercase tracking-wider font-semibold" id="profileTeamBadge">
+                  Novo Membro
+                </span>
+                <span class="px-2 py-0.5 rounded-full bg-primary-container/20 text-primary font-label-sm text-label-sm font-semibold" id="profileScheduleBadge">
+                  Sem escala
+                </span>
+              </div>
+              <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface truncate mt-1" id="profileFullName">
+                Carregando...
+              </h2>
+              <p class="font-body-sm text-body-sm text-on-surface-variant truncate" id="profileContactLine">
+                -
+              </p>
+            </div>
+          </div>
+
+          <!-- Quick Edit Button -->
+          <button aria-label="Editar Perfil" class="shrink-0 w-10 h-10 rounded-xl bg-surface-container-high hover:bg-surface-variant text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-transform active:scale-95 shadow-sm" id="btnEditProfile" type="button">
+            <span class="material-symbols-outlined text-[20px]">edit</span>
+          </button>
+        </div>
+
+        <!-- Role Pill Strip Dinâmico -->
+        <div class="mt-4 pt-3 flex items-center gap-2 overflow-x-auto no-scrollbar" id="profileRolePillStrip"></div>
+      </div>
+
+      <!-- Painel Administrativo Rápido (visível apenas para ADMIN) -->
+      <div class="hidden flex-col space-y-2.5" data-admin-only="" id="adminQuickSection">
+        <div class="flex items-center gap-2 px-1">
+          <span class="material-symbols-outlined text-secondary text-[20px]">admin_panel_settings</span>
+          <h3 class="font-headline-sm text-headline-sm text-on-surface">Administração do Sistema (ADMIN)</h3>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <a class="p-3 rounded-xl bg-surface-container-low hover:bg-surface-container flex items-center justify-between border border-secondary/20 transition-all" href="/pages/usuarios/index.html">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-secondary">group</span>
+              <span class="font-label-md text-on-surface">Usuários &amp; Acessos</span>
+            </div>
+            <span class="material-symbols-outlined text-on-surface-variant text-[18px]">chevron_right</span>
+          </a>
+          <a class="p-3 rounded-xl bg-surface-container-low hover:bg-surface-container flex items-center justify-between border border-primary/20 transition-all" href="/pages/configuracoes/index.html">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-primary">security</span>
+              <span class="font-label-md text-on-surface">Permissões &amp; Sistema</span>
+            </div>
+            <span class="material-symbols-outlined text-on-surface-variant text-[18px]">chevron_right</span>
+          </a>
+          <a class="p-3 rounded-xl bg-surface-container-low hover:bg-surface-container flex items-center justify-between border border-tertiary/20 transition-all" href="/pages/aprovacao-trocas/index.html">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-tertiary">sync_alt</span>
+              <span class="font-label-md text-on-surface">Aprovar Trocas</span>
+            </div>
+            <span class="material-symbols-outlined text-on-surface-variant text-[18px]">chevron_right</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- 2. Instrumentos & Habilidades Ativas -->
+      <div class="flex flex-col space-y-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[20px]">piano</span>
+            <h3 class="font-headline-sm text-headline-sm text-on-surface">Habilidades &amp; Funções</h3>
+          </div>
+          <button class="flex items-center gap-1 text-primary hover:text-primary-fixed transition-colors font-label-md text-label-md active:scale-95" id="btnAddInstrument" type="button">
+            <span class="material-symbols-outlined text-[16px]">add</span>
+            Adicionar
+          </button>
+        </div>
+        <div class="flex flex-col space-y-2" id="skillsListContainer"></div>
+      </div>
+
+      <!-- 3. Métricas e Estatísticas (Zeradas para novos cadastros) -->
+      <div class="flex flex-col space-y-3">
+        <div class="flex items-center gap-2 px-1">
+          <span class="material-symbols-outlined text-secondary text-[20px]">insights</span>
+          <h3 class="font-headline-sm text-headline-sm text-on-surface" id="ministryStatsYearTitle">Estatísticas do Ministério</h3>
+        </div>
+        <div class="grid grid-cols-3 gap-2.5">
+          <div class="relative overflow-hidden p-3 rounded-xl bg-surface-container-low flex flex-col justify-between shadow-sm">
+            <div class="w-7 h-7 rounded-lg bg-primary-container/20 text-primary flex items-center justify-center mb-2">
+              <span class="material-symbols-outlined text-[18px]">event_available</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold tracking-tight" id="statCompletedSchedules">0</span>
+              <span class="font-label-sm text-label-sm text-on-surface-variant mt-0.5 leading-tight">Escalas Cumpridas</span>
+            </div>
+          </div>
+          <div class="relative overflow-hidden p-3 rounded-xl bg-surface-container-low flex flex-col justify-between shadow-sm">
+            <div class="w-7 h-7 rounded-lg bg-secondary-container/20 text-secondary flex items-center justify-center mb-2">
+              <span class="material-symbols-outlined text-[18px]">timer</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="font-headline-lg-mobile text-headline-lg-mobile text-secondary font-bold tracking-tight" id="statAttendanceRate">0%</span>
+              <span class="font-label-sm text-label-sm text-on-surface-variant mt-0.5 leading-tight">Pontualidade &amp; Presença</span>
+            </div>
+          </div>
+          <div class="relative overflow-hidden p-3 rounded-xl bg-surface-container-low flex flex-col justify-between shadow-sm">
+            <div class="w-7 h-7 rounded-lg bg-tertiary-container/20 text-tertiary flex items-center justify-center mb-2">
+              <span class="material-symbols-outlined text-[18px]">swap_horiz</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold tracking-tight" id="statSwapsRequested">0</span>
+              <span class="font-label-sm text-label-sm text-on-surface-variant mt-0.5 leading-tight">Trocas Pedidas</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Preferências & Disponibilidade Padrão -->
+      <div class="flex flex-col space-y-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-tertiary text-[20px]">calendar_view_week</span>
+            <h3 class="font-headline-sm text-headline-sm text-on-surface">Preferências de Escala</h3>
+          </div>
+          <button class="text-on-surface-variant hover:text-on-surface transition-colors font-label-md text-label-md flex items-center gap-0.5" id="btnEditPreferences" type="button">
+            Ajustar
+          </button>
+        </div>
+        <div class="p-4 rounded-xl bg-surface-container-low flex flex-col space-y-3.5 shadow-sm">
+          <div class="flex items-start justify-between">
+            <div class="flex items-start gap-2.5">
+              <span class="material-symbols-outlined text-primary text-[20px] mt-0.5">schedule</span>
+              <div>
+                <span class="font-headline-sm text-headline-sm text-on-surface block">Cultos Favoritos</span>
+                <span class="font-body-sm text-body-sm text-on-surface-variant" id="prefFavoriteServices">Não definido</span>
+              </div>
+            </div>
+            <span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm" id="prefFrequencyBadge">
+              -
+            </span>
+          </div>
+          <div class="h-px w-full bg-surface-variant/40"></div>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-secondary text-[20px]">repeat</span>
+              <span class="font-headline-sm text-headline-sm text-on-surface">Frequência Desejada</span>
+            </div>
+            <span class="px-2.5 py-1 rounded-full bg-secondary-container/20 text-secondary font-label-md text-label-md font-semibold" id="prefDesiredFrequency">
+              Não definida
+            </span>
+          </div>
+          <div class="h-px w-full bg-surface-variant/40"></div>
+          <div class="flex items-start gap-2.5">
+            <span class="material-symbols-outlined text-tertiary text-[20px] mt-0.5">event_busy</span>
+            <div>
+              <span class="font-headline-sm text-headline-sm text-on-surface block">Restrição Recorrente</span>
+              <span class="font-body-sm text-body-sm text-tertiary" id="prefRecurringRestriction">Nenhuma restrição cadastrada</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Notificações & Alertas -->
+      <div class="flex flex-col space-y-3">
+        <div class="flex items-center gap-2 px-1">
+          <span class="material-symbols-outlined text-primary text-[20px]">notifications_active</span>
+          <h3 class="font-headline-sm text-headline-sm text-on-surface">Notificações &amp; Alertas</h3>
+        </div>
+        <div class="rounded-xl bg-surface-container-low overflow-hidden shadow-sm divide-y divide-surface-variant/40">
+          <div class="p-4 flex items-center justify-between gap-4">
+            <div class="flex flex-col pr-2">
+              <span class="font-headline-sm text-headline-sm text-on-surface">Convocações de Escala</span>
+              <span class="font-body-sm text-body-sm text-on-surface-variant">Push imediato quando seu nome entrar na escala</span>
+            </div>
+            <button aria-checked="true" class="toggle-switch shrink-0 relative inline-flex h-7 w-12 items-center rounded-full bg-primary-container transition-colors focus:outline-none" data-field="notif_convocacoes" data-toggle="convocacoes" role="switch" type="button">
+              <span class="toggle-knob inline-block h-5 w-5 transform rounded-full bg-on-primary-container shadow-md transition-transform translate-x-6"></span>
+            </button>
+          </div>
+          <div class="p-4 flex items-center justify-between gap-4">
+            <div class="flex flex-col pr-2">
+              <span class="font-headline-sm text-headline-sm text-on-surface">Lembrete de Ensaio Geral</span>
+              <span class="font-body-sm text-body-sm text-on-surface-variant">Avisos programados 24h e 2h antes no celular</span>
+            </div>
+            <button aria-checked="true" class="toggle-switch shrink-0 relative inline-flex h-7 w-12 items-center rounded-full bg-primary-container transition-colors focus:outline-none" data-field="notif_ensaios" data-toggle="ensaios" role="switch" type="button">
+              <span class="toggle-knob inline-block h-5 w-5 transform rounded-full bg-on-primary-container shadow-md transition-transform translate-x-6"></span>
+            </button>
+          </div>
+          <div class="p-4 flex items-center justify-between gap-4">
+            <div class="flex flex-col pr-2">
+              <span class="font-headline-sm text-headline-sm text-on-surface">Enquetes de Disponibilidade</span>
+              <span class="font-body-sm text-body-sm text-on-surface-variant">Notificar assim que abrir o formulário mensal</span>
+            </div>
+            <button aria-checked="true" class="toggle-switch shrink-0 relative inline-flex h-7 w-12 items-center rounded-full bg-primary-container transition-colors focus:outline-none" data-field="notif_enquetes" data-toggle="enquetes" role="switch" type="button">
+              <span class="toggle-knob inline-block h-5 w-5 transform rounded-full bg-on-primary-container shadow-md transition-transform translate-x-6"></span>
+            </button>
+          </div>
+          <div class="p-4 flex items-center justify-between gap-4">
+            <div class="flex flex-col pr-2">
+              <span class="font-headline-sm text-headline-sm text-on-surface">Alertas de Troca da Equipe</span>
+              <span class="font-body-sm text-body-sm text-on-surface-variant">Receber chamados de emergência da equipe</span>
+            </div>
+            <button aria-checked="true" class="toggle-switch shrink-0 relative inline-flex h-7 w-12 items-center rounded-full bg-primary-container transition-colors focus:outline-none" data-field="notif_trocas" data-toggle="trocas" role="switch" type="button">
+              <span class="toggle-knob inline-block h-5 w-5 transform rounded-full bg-on-primary-container shadow-md transition-transform translate-x-6"></span>
+            </button>
+          </div>
+          <div class="p-4 flex items-center justify-between gap-4">
+            <div class="flex flex-col pr-2">
+              <span class="font-headline-sm text-headline-sm text-on-surface">Sincronizar Calendário</span>
+              <span class="font-body-sm text-body-sm text-on-surface-variant">Exportar automaticamente para Google / Apple Calendar</span>
+            </div>
+            <button aria-checked="false" class="toggle-switch shrink-0 relative inline-flex h-7 w-12 items-center rounded-full bg-surface-variant transition-colors focus:outline-none" data-field="calendar_sync" data-toggle="sync" role="switch" type="button">
+              <span class="toggle-knob inline-block h-5 w-5 transform rounded-full bg-outline shadow-md transition-transform translate-x-1"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. Recursos, Passo a Passo & Diretrizes -->
+      <div class="flex flex-col space-y-3">
+        <div class="flex items-center gap-2 px-1">
+          <span class="material-symbols-outlined text-on-surface-variant text-[20px]">folder_special</span>
+          <h3 class="font-headline-sm text-headline-sm text-on-surface">Recursos &amp; Diretrizes</h3>
+        </div>
+        <div class="rounded-xl bg-surface-container-low overflow-hidden shadow-sm divide-y divide-surface-variant/40">
+          <!-- Passo a Passo de Primeiro Acesso -->
+          <button class="w-full flex items-center justify-between p-4 hover:bg-surface-container active:scale-[0.99] transition-all text-left" onclick="window.LouvorNav.openFirstAccessGuide()" type="button">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-lg bg-secondary-container/20 text-secondary flex items-center justify-center">
+                <span class="material-symbols-outlined text-[20px]">school</span>
+              </div>
+              <div class="flex flex-col">
+                <span class="font-headline-sm text-headline-sm text-on-surface">Passo a Passo • Como Usar o App</span>
+                <span class="font-body-sm text-body-sm text-on-surface-variant">Guia interativo de primeiro acesso ao LouvorApp</span>
+              </div>
+            </div>
+            <span class="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>
+          </button>
+          <!-- Alterar Minha Senha -->
+          <button class="w-full flex items-center justify-between p-4 hover:bg-surface-container active:scale-[0.99] transition-all text-left" id="btnOpenChangePasswordModal" type="button">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-[20px]">lock_reset</span>
+              </div>
+              <div class="flex flex-col">
+                <span class="font-headline-sm text-headline-sm text-on-surface">Alterar Minha Senha</span>
+                <span class="font-body-sm text-body-sm text-on-surface-variant">Atualize sua senha de acesso com segurança</span>
+              </div>
+            </div>
+            <span class="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>
+          </button>
+          <!-- Cifras e Repertório -->
+          <button class="w-full flex items-center justify-between p-4 hover:bg-surface-container active:scale-[0.99] transition-all text-left" id="linkRepertoireCatalog" type="button">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-[20px]">library_music</span>
+              </div>
+              <div class="flex flex-col">
+                <span class="font-headline-sm text-headline-sm text-on-surface">Repertório Geral &amp; Cifras</span>
+                <span class="font-body-sm text-body-sm text-on-surface-variant">Catálogo de músicas com tons oficiais</span>
+              </div>
+            </div>
+            <span class="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>
+          </button>
+          <!-- Manual do Ministério -->
+          <button class="w-full flex items-center justify-between p-4 hover:bg-surface-container active:scale-[0.99] transition-all text-left" id="linkMinistryManual" type="button">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-lg bg-surface-container-high text-secondary flex items-center justify-center">
+                <span class="material-symbols-outlined text-[20px]">menu_book</span>
+              </div>
+              <div class="flex flex-col">
+                <span class="font-headline-sm text-headline-sm text-on-surface">Manual do Ministério de Louvor</span>
+                <span class="font-body-sm text-body-sm text-on-surface-variant">Código de conduta, dress-code e pontualidade</span>
+              </div>
+            </div>
+            <span class="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>
+          </button>
+          <!-- Tema Dark Mode Info -->
+          <div class="flex items-center justify-between p-4">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-lg bg-surface-container-high text-tertiary flex items-center justify-center">
+                <span class="material-symbols-outlined text-[20px]">dark_mode</span>
+              </div>
+              <div class="flex flex-col">
+                <span class="font-headline-sm text-headline-sm text-on-surface">Tema do Aplicativo</span>
+                <span class="font-body-sm text-body-sm text-on-surface-variant">Otimizado para iluminação de palco baixa</span>
+              </div>
+            </div>
+            <span class="px-2.5 py-1 rounded-full bg-surface-container-highest text-on-surface font-label-sm text-label-sm font-semibold">
+              Dark Stage
+            </span>
+          </div>
+          <!-- Termos e Privacidade -->
+          <button class="w-full flex items-center justify-between p-4 hover:bg-surface-container active:scale-[0.99] transition-all text-left" id="linkTermsPrivacy" type="button">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-lg bg-surface-container-high text-outline flex items-center justify-center">
+                <span class="material-symbols-outlined text-[20px]">policy</span>
+              </div>
+              <div class="flex flex-col">
+                <span class="font-headline-sm text-headline-sm text-on-surface">Termos &amp; Privacidade</span>
+                <span class="font-body-sm text-body-sm text-on-surface-variant">Política de uso de dados da congregação</span>
+              </div>
+            </div>
+            <span class="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 7. Ações de Rodapé e Logout -->
+      <div class="flex flex-col space-y-3 pt-2">
+        <button class="w-full flex items-center justify-between p-3.5 rounded-xl bg-surface-container-high hover:bg-surface-variant text-on-surface transition-transform active:scale-[0.99]" id="btnSwitchCampus" type="button">
+          <div class="flex items-center gap-2.5">
+            <span class="material-symbols-outlined text-primary text-[20px]">church</span>
+            <span class="font-label-lg text-label-lg">Campus Atual: <strong id="currentCampusLabel">Campus Central</strong></span>
+          </div>
+          <div class="flex items-center gap-1 text-primary font-label-md text-label-md">
+            <span>Alternar</span>
+            <span class="material-symbols-outlined text-[16px]">swap_vert</span>
+          </div>
+        </button>
+
+        <button class="w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-error-container/30 hover:bg-error-container/50 text-error transition-all active:scale-[0.98]" id="btnLogout" type="button">
+          <span class="material-symbols-outlined text-[20px]">logout</span>
+          <span class="font-headline-sm text-headline-sm font-semibold">Sair da Conta</span>
+        </button>
+
+        <div class="pt-4 pb-2 text-center flex flex-col items-center justify-center space-y-1">
+          <div class="flex items-center gap-1.5 text-outline font-label-md text-label-md">
+            <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+            <span>LouvorApp v2.4.1</span>
+          </div>
+          <p class="font-body-sm text-body-sm text-on-surface-variant/70">
+            Ministério de Louvor &amp; Adoração
+          </p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.5)]" data-active-classes="text-primary font-semibold"></nav>
+
+  <script src="/components/navigation.js"></script>
+  <script src="/pages/perfil-configuracoes/script.js"></script>
+</body>
+</html>

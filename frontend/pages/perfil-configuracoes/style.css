@@ -1,0 +1,5 @@
+/* Estilos da tela Perfil & Configurações */
+body {
+  min-height: max(884px, 100dvh);
+  background-color: #0f131c;
+}

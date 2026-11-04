@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html class="dark" lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+  <meta content="mobile_tab" name="shell-type"/>
+  <title>LouvorApp • Aprovação de Trocas (Líder / Admin)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/shared/api.js"></script>
+  <link href="/shared/theme.css" rel="stylesheet"/>
+  <link href="/pages/aprovacao-trocas/style.css" rel="stylesheet"/>
+</head>
+<body class="bg-surface text-on-surface font-body-md text-body-md flex flex-col min-h-screen antialiased">
+  <header class="fixed top-0 inset-x-0 z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+    <div class="h-16 px-margin flex items-center justify-between max-w-4xl mx-auto">
+      <div class="flex flex-col gap-0.5 min-w-0 pr-space-xs">
+        <div class="flex items-center gap-space-sm">
+          <h1 class="font-headline-sm text-headline-sm text-on-surface truncate">Gestão De Trocas</h1>
+          <span class="inline-flex items-center px-space-sm py-0.5 rounded-full bg-secondary/15 text-secondary font-label-sm text-label-sm uppercase tracking-wider">Líder</span>
+        </div>
+        <span class="font-body-sm text-body-sm text-on-surface-variant truncate">LouvorApp • Ministério de Música</span>
+      </div>
+      <div class="flex items-center gap-space-xs shrink-0">
+        <button aria-label="Notificações" class="w-11 h-11 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors relative">
+          <span class="material-symbols-outlined text-[22px]">notifications</span>
+          <span class="hidden absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-tertiary" data-notif-badge=""></span>
+        </button>
+        <a class="relative flex items-center justify-center p-1" href="/pages/perfil-configuracoes/index.html">
+          <img alt="Profile" class="hidden w-8 h-8 rounded-full object-cover ring-2 ring-surface-variant" data-user-avatar="" src=""/>
+          <span class="absolute -bottom-1 -right-0.5 px-1 py-0.2 bg-secondary text-on-secondary font-label-sm text-[9px] font-bold rounded-full shadow-[0_0_6px_rgba(78,222,163,0.5)] uppercase tracking-tighter scale-90" data-user-role-badge="">ADMIN</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex flex-col relative w-full pt-16 pb-24 px-margin bg-surface">
+    <div class="flex flex-col w-full app-shell-container gap-space-lg pt-2">
+      <!-- Overview Section -->
+      <section class="flex flex-col gap-space-md">
+        <div class="flex flex-col gap-space-xs">
+          <div class="flex items-center justify-between">
+            <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface tracking-tight">Aprovação de Trocas</h2>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary-container/30 text-tertiary font-label-sm text-label-sm uppercase tracking-wider">
+              <span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
+              <span id="headerPendingBadge">0 Pendentes</span>
+            </span>
+          </div>
+          <p class="font-body-md text-body-md text-on-surface-variant">Gerencie substituições solicitadas pelos músicos e vocalistas com controle pastoral.</p>
+        </div>
+
+        <!-- Leader KPI Bento Cards (Iniciam em zero e refletem o banco real) -->
+        <div class="grid grid-cols-3 gap-space-sm">
+          <div class="flex flex-col p-3 rounded-xl bg-surface-container-low shadow-sm">
+            <div class="flex items-center gap-1 text-tertiary mb-1">
+              <span class="material-symbols-outlined text-[18px]">hourglass_top</span>
+              <span class="font-label-sm text-label-sm">Fila</span>
+            </div>
+            <span class="font-headline-md text-headline-md text-on-surface font-bold" id="kpiQueueCount">0</span>
+            <span class="font-body-sm text-body-sm text-on-surface-variant truncate">Aguardando</span>
+          </div>
+          <div class="flex flex-col p-3 rounded-xl bg-surface-container-low shadow-sm">
+            <div class="flex items-center gap-1 text-primary mb-1">
+              <span class="material-symbols-outlined text-[18px]">bolt</span>
+              <span class="font-label-sm text-label-sm">Tempo</span>
+            </div>
+            <span class="font-headline-md text-headline-md text-on-surface font-bold" id="kpiAvgTime">0h</span>
+            <span class="font-body-sm text-body-sm text-on-surface-variant truncate">Médio resp.</span>
+          </div>
+          <div class="flex flex-col p-3 rounded-xl bg-surface-container-low shadow-sm">
+            <div class="flex items-center gap-1 text-secondary mb-1">
+              <span class="material-symbols-outlined text-[18px]">verified</span>
+              <span class="font-label-sm text-label-sm">Escalas</span>
+            </div>
+            <span class="font-headline-md text-headline-md text-secondary font-bold" id="kpiCoverage">0%</span>
+            <span class="font-body-sm text-body-sm text-on-surface-variant truncate">Cobertura</span>
+          </div>
+        </div>
+
+        <!-- Filter Pills -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-1" id="filter-pill-group">
+          <button class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-primary text-on-primary font-label-md text-label-md transition-all shadow-sm" data-filter="pending" onclick="filterSwapsByStatus('pending', this)" type="button">
+            <span class="material-symbols-outlined text-[16px]">pending_actions</span>
+            <span id="pillPendingLabel">Pendentes (0)</span>
+          </button>
+          <button class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-colors" data-filter="approved" onclick="filterSwapsByStatus('approved', this)" type="button">
+            <span class="material-symbols-outlined text-[16px]">check_circle</span>
+            <span id="pillApprovedLabel">Aprovadas (0)</span>
+          </button>
+          <button class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-colors" data-filter="rejected" onclick="filterSwapsByStatus('rejected', this)" type="button">
+            <span class="material-symbols-outlined text-[16px]">cancel</span>
+            <span id="pillRejectedLabel">Recusadas (0)</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Section: Immediate Batch Action Trigger -->
+      <section class="flex items-center justify-between p-3.5 rounded-xl bg-surface-container-low">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-secondary/15 flex items-center justify-center text-secondary">
+            <span class="material-symbols-outlined text-[20px]">done_all</span>
+          </div>
+          <div class="flex flex-col">
+            <span class="font-label-md text-label-md text-on-surface font-semibold">Aprovação Inteligente</span>
+            <span class="font-body-sm text-body-sm text-on-surface-variant" id="smartApproveDesc">0 trocas com par ideal prontas</span>
+          </div>
+        </div>
+        <button class="px-3 py-1.5 rounded-lg bg-secondary text-on-secondary font-label-sm text-label-sm uppercase tracking-wider flex items-center gap-1 hover:brightness-105 active:scale-95 transition-transform" id="btnSmartApproveBatch" onclick="runSmartBatchApprove(this)" type="button">
+          <span>Aprovar</span>
+        </button>
+      </section>
+
+      <!-- Queue Header -->
+      <div class="flex items-center justify-between pt-1">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-tertiary text-[20px]">priority_high</span>
+          <h3 class="font-headline-sm text-headline-sm text-on-surface" id="queueSectionTitle">Solicitações na Fila</h3>
+        </div>
+        <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider" id="queueCountSubtitle">0 na fila</span>
+      </div>
+
+      <!-- Container Dinâmico de Solicitações de Troca -->
+      <div class="flex flex-col gap-space-md" id="dynamicSwapsQueue"></div>
+
+      <!-- Section: Leader Management Quick Settings -->
+      <section class="flex flex-col gap-space-sm p-4 rounded-2xl bg-surface-container-low shadow-sm">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[20px]">tune</span>
+            <h3 class="font-headline-sm text-headline-sm text-on-surface">Diretrizes de Trocas</h3>
+          </div>
+          <button class="font-label-sm text-label-sm text-primary uppercase font-bold hover:underline" onclick="openGuidelinesConfigModal()" type="button">Configurar</button>
+        </div>
+        <div class="flex flex-col gap-2.5">
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-surface-container">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="material-symbols-outlined text-outline text-[20px]">timer</span>
+              <div class="flex flex-col min-w-0">
+                <span class="font-label-md text-label-md text-on-surface truncate">Prazo Limite para Troca</span>
+                <span class="font-body-sm text-body-sm text-on-surface-variant truncate" id="guidelineDeadlineDesc">Até 24h antes do culto</span>
+              </div>
+            </div>
+            <button class="px-2 py-1 rounded bg-surface-container-high text-on-surface font-label-sm text-label-sm" id="guidelineDeadlineBadge" onclick="toggleGuidelineSetting('swap_deadline_active')" type="button">Ativo</button>
+          </div>
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-surface-container">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="material-symbols-outlined text-outline text-[20px]">autorenew</span>
+              <div class="flex flex-col min-w-0">
+                <span class="font-label-md text-label-md text-on-surface truncate">Autoaprovação de Ensaios</span>
+                <span class="font-body-sm text-body-sm text-on-surface-variant truncate">Sem necessidade do líder</span>
+              </div>
+            </div>
+            <button class="px-2 py-1 rounded bg-secondary/15 text-secondary font-label-sm text-label-sm font-semibold" id="guidelineAutoApproveBadge" onclick="toggleGuidelineSetting('rehearsal_auto_approve')" type="button">Ligado</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Recently Resolved Decisions -->
+      <section class="flex flex-col gap-space-sm mb-2">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-outline text-[20px]">history</span>
+            <h3 class="font-headline-sm text-headline-sm text-on-surface">Decisões Recentes</h3>
+          </div>
+          <span class="font-label-sm text-label-sm text-on-surface-variant">Histórico</span>
+        </div>
+        <div class="flex flex-col gap-2" id="recentDecisionsContainer"></div>
+      </section>
+    </div>
+  </main>
+
+  <nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.25)]" data-active-classes="text-primary font-label-md"></nav>
+
+  <script src="/components/navigation.js"></script>
+  <script src="/pages/aprovacao-trocas/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+# ============================================================================
+# LOUVORAPP - SERVIÇO SYSTEMD PARA EXECUÇÃO CONTÍNUA E INICIALIZAÇÃO AUTOMÁTICA
+# Copie para: /etc/systemd/system/louvorapp.service
+# Ative com : sudo systemctl daemon-reload && sudo systemctl enable --now louvorapp
+# ============================================================================
+
+[Unit]
+Description=LouvorApp - Sistema Web de Gestão de Ministério de Louvor
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/louvorapp
+EnvironmentFile=/var/www/louvorapp/.env
+ExecStart=/usr/bin/node /var/www/louvorapp/backend/server.js
+Restart=always
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=louvorapp
+
+[Install]
+WantedBy=multi-user.target

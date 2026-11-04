@@ -1,0 +1,23 @@
+# Dependências
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Variáveis de ambiente locais
+.env
+.env.local
+.env.production.local
+
+# Banco de dados local de execução (mantenha backups seguros na VPS)
+database/*.sqlite
+database/*.sqlite-shm
+database/*.sqlite-wal
+database/*.db
+
+# Logs e arquivos temporários
+logs/
+*.log
+.DS_Store
+Thumbs.db
+tmp/

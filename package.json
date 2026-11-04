@@ -1,0 +1,27 @@
+{
+  "name": "louvorapp-church-worship-management",
+  "version": "2.4.1",
+  "description": "Sistema Web Completo de Gestão de Escalas, Repertório, Enquetes e Substituições para Ministério de Louvor",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "NODE_ENV=development node backend/server.js",
+    "migrate": "node backend/server.js --migrate-only",
+    "seed": "node backend/server.js --seed-only",
+    "reset-db": "node backend/server.js --reset-db",
+    "test": "node tests/e2e_test.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "louvorapp",
+    "worship-management",
+    "escalas",
+    "igreja",
+    "nodejs",
+    "sqlite"
+  ],
+  "author": "Ministério de Louvor & Adoração",
+  "license": "MIT"
+}
